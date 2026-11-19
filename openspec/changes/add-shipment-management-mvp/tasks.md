@@ -13,7 +13,7 @@
 
 - [ ] 2.1 定义 `app/models/user.py`（`users` 表：`phone VARCHAR(20)` 唯一索引 `uk_users_phone`、`username VARCHAR(64)` 可重名、`authority VARCHAR(10)` 默认 `normal`、`is_active`，以及统一状态与审计字段 `status TINYINT` 默认 0（0 正常 / 1 已删除）、`operator VARCHAR(20)`（FK → users.phone，可空）、`created_at`、`updated_at`），验证迁移建表成功且 `SHOW CREATE TABLE users` 确认 phone 唯一、authority 默认值正确、status 与审计字段齐全
 - [ ] 2.2 定义 `app/models/shipment.py`（`shipments` 表：**只有 shipment_num 一个业务字段**，含 `shipment_num VARCHAR(64)` 与唯一索引 `uk_shipments_shipment_num`、`lifecycle VARCHAR(20)` 默认 `draft`（业务状态：draft/confirmed/completed/cancelled），以及统一状态与审计字段 `status TINYINT` 默认 0、`operator VARCHAR(20)`（FK → users.phone）、`created_at`、`updated_at`），验证迁移建表成功且确认生命周期与状态两列语义分离
-- [ ] 2.3 定义 `app/models/charge_info.py`（`charge_info` 表：shipment_id 外键、job_num、七个分类字段**全部为 VARCHAR 内容列，不设指向选项表的外键**、`os_cost_amt` 与 `os_sell_amt` 为 `DECIMAL(14,2)`、`local_cost_amt` 与 `local_sell_amt` 为 nullable DECIMAL，以及 `related_source_id BIGINT`（NULL 时表示手工创建，非空时指向源记录，外键自引用）、统一状态与审计字段 `status TINYINT` 默认 0、`operator VARCHAR(20)`（FK → users.phone）、`created_at`、`updated_at`），验证迁移建表成功且列类型与索引正确
+- [ ] 2.3 定义 `app/models/charge_info.py`（`charge_info` 表：shipment_id 外键、job_num、七个分类字段**全部为 VARCHAR 内容列，不设指向选项表的外键**、`os_cost_amt` 与 `os_sell_amt` 为 `DECIMAL(14,2)`以及 `related_source_id BIGINT`（NULL 时表示手工创建，非空时指向源记录，外键自引用）、统一状态与审计字段 `status TINYINT` 默认 0、`operator VARCHAR(20)`（FK → users.phone）、`created_at`、`updated_at`），验证迁移建表成功且列类型与索引正确
 - [ ] 2.4 定义 `app/models/options.py`（六张同构选项表：charge_codes、departments、branches、currencies、creditors、debtors，字段均为 code 唯一、name 可空、is_active，以及统一状态与审计字段 `status TINYINT` 默认 0、`operator VARCHAR(20)`（FK → users.phone）、`created_at`、`updated_at`），验证迁移建表成功且九张表的唯一索引均生效、status 与审计字段与其它表一致
 - [ ] 2.5 在迁移中加入 MySQL CHECK 约束（`os_cost_amt >= 0`、`os_sell_amt >= 0`、`authority IN ('admin','normal')`、所有表 `status IN (0,1)`）并建立 `operator` → `users.phone` 的外键（**带 `ON UPDATE CASCADE`**，使改号后历史审计记录同步跟随），验证插入负数金额、非法 authority 与非法 status 的行均被数据库拒绝、修改用户手机号后引用它的审计字段同步更新
 - [ ] 2.6 实现 `app/db/session.py`（engine、`sessionmaker`、`get_db` 依赖，**一个请求一个事务**，service 不自行 commit）与 `app/db/base.py`，验证 `alembic downgrade base && alembic upgrade head` 可往返执行且数据表恢复
@@ -67,7 +67,7 @@
 
 ## 8. 费用信息能力（`charge-info`）
 
-- [ ] 8.1 实现 `app/schemas/charge_info.py`（应付侧与应收侧字段均 Required、金额用 `condecimal(max_digits=14, decimal_places=2)`、`description` 非空文本、九个分类字段为内容字符串、`local_*` 字段可空且忽略客户端传值），验证 schema 单元测试覆盖：缺任一应付侧字段被拒、缺任一应收侧字段被拒、缺账单类型被拒、三位小数金额被拒、负数金额被拒
+- [ ] 8.1 实现 `app/schemas/charge_info.py`（应付侧与应收侧字段均 Required、金额用 `condecimal(max_digits=14, decimal_places=2)`、`description` 非空文本、七个分类字段为内容字符串），验证 schema 单元测试覆盖：缺任一应付侧字段被拒、缺任一应收侧字段被拒、缺账单类型被拒、三位小数金额被拒、负数金额被拒
 - [ ] 8.2 实现 `POST /api/v1/shipments/{id}/charge-infos`（校验所属货运订单存在且未软删除、把父订单的 shipment_num 写入 job_num、对八个封闭集合字段做取值校验、写入审计字段，全部在同一事务内），验证测试覆盖：创建成功并返回全部字段、任务码自动带出为父订单号、客户端传入不同 job_num 被忽略、所属订单不存在返回 404
 - [ ] 8.3 实现分类字段的三态校验（取值不存在 → 拒绝并说明无效；取值已停用 → 新建拒绝、编辑时保留原值接受、编辑改为该值拒绝；取值已软删除 → 拒绝并说明已被删除），验证测试覆盖上述每一种情形
 - [ ] 8.4 实现 `PATCH /api/v1/charge-infos/{id}`（可改七个分类字段与两侧金额；job_num 不可改；重新执行取值校验与金额约束校验；更新审计字段），验证测试覆盖：修改生效、修改币种后在新币种下参与合计、job_num 保持不变、改成非法取值被拒、编辑不存在的记录返回 404
@@ -84,7 +84,6 @@
 ## 10. 金额口径（`amount-rules`）
 
 - [ ] 10.1 实现应付与应收两侧的币种校验（各自取自币种选项表中启用且未删除的项、允许两侧币种不同），验证测试覆盖：两侧币种不同被接受、两侧相同被接受、币种不存在或已停用被拒
-- [ ] 10.2 实现本地金额字段的处理（`local_cost_amt` 与 `local_sell_amt` 恒为 null，客户端传入的值被忽略且不保存），验证测试覆盖：读取时两字段均为 null、创建时传入被忽略后落库仍为 null
 - [ ] 10.3 实现货运订单列表的金额区间筛选口径（必须指定币种；未指定币种时不应用区间条件），验证测试覆盖：指定币种时按该币种下的合计筛选生效、未指定币种时区间被忽略而非报错、币种与区间不匹配时无结果
 
 ## 11. 前端基础设施与登录（`auth`）
