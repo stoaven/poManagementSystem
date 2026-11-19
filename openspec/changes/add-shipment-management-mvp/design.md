@@ -102,7 +102,7 @@
 
 ### D8. 软删除统一用 status 标记（0 正常 / 1 已删除）
 
-**选择**：所有数据表——`users`、`shipments`、`charge_info` 与九张选项表——都带一个 `status` 列（`TINYINT NOT NULL DEFAULT 0`），`0` 表示正常、`1` 表示已删除。删除操作把该行的 `status` 置为 1，**不设 `deleted_at` / `deleted_by` 两列**。查询助手统一注入 `status = 0` 过滤。
+**选择**：所有数据表——`users`、`shipments`、`charge_info` 与六张选项表——都带一个 `status` 列（`TINYINT NOT NULL DEFAULT 0`），`0` 表示正常、`1` 表示已删除。删除操作把该行的 `status` 置为 1，**不设 `deleted_at` / `deleted_by` 两列**。查询助手统一注入 `status = 0` 过滤。
 
 **理由**：一套字段名贯穿全部 12 张表，查询助手、序列化与列表展示都能共用同一套逻辑，不必为「软删除」和「业务上停用」维护两套字段（`is_active` 与 `status` 已经够用：前者是业务上的停用，后者是数据层面的删除）。
 
@@ -122,7 +122,7 @@
 
 **选择**：六类选项的校验实现为一张**字段标识 → 选项表**的映射表，后端按映射查对应表。
 
-**理由**：九个字段对应九张表，映射写在一处即可。若每处校验各写各的，很容易漏掉某一个字段或查错表——而这类错误的表现是「某字段的取值校验查了另一张表」，极难发现。
+**理由**：七个分类字段对应六张表（币种被应付侧与应收侧共用），映射写在一处即可。若每处校验各写各的，很容易漏掉某一个字段或查错表——而这类错误的表现是「某字段的取值校验查了另一张表」，极难发现。
 
 **校验需要区分三种情形**：值不存在（拒绝）、值已停用（新建拒绝 / 编辑未变通过 / 编辑变更拒绝）、值已删除（拒绝）。三者错误提示不同，用户才知道该怎么办。
 
@@ -269,7 +269,7 @@ poManagementSystem/
 │   │   │   ├── user.py
 │   │   │   ├── shipment.py
 │   │   │   ├── charge_info.py
-│   │   │   └── options.py        # 九张选项表模型
+│   │   │   └── options.py        # 六张选项表模型
 │   │   ├── schemas/
 │   │   │   ├── auth.py
 │   │   │   ├── user.py
@@ -330,13 +330,13 @@ poManagementSystem/
 └── openspec/
 ```
 
-**理由**：后端按「传输层（api）— 业务层（services）— 数据层（repositories/models）」分层。六类选项的模型各自独立（表独立、类型安全），但 service 与 repository 共享同一套泛型实现——`option_service.py` 与 `option.py` 通过表名/模型参数化调用，九份近乎相同的 CRUD 只写一遍。
+**理由**：后端按「传输层（api）— 业务层（services）— 数据层（repositories/models）」分层。六类选项的模型各自独立（表独立、类型安全），但 service 与 repository 共享同一套泛型实现——`option_service.py` 与 `option.py` 通过表名/模型参数化调用，六份近乎相同的 CRUD 只写一遍。
 
 **权限依赖放在 `core/deps.py`**：一个 `get_current_user` 依赖产出当前用户对象，一个 `require_admin` 依赖在其上再判权限。路由只声明要用哪个依赖，不在 handler 里写 if。
 
 ### D23. 数据模型
 
-**统一的审计与状态字段**：每一张表——`users`、`shipments`、`charge_info` 与九张选项表——都带同样这四个字段：
+**统一的审计与状态字段**：每一张表——`users`、`shipments`、`charge_info` 与六张选项表——都带同样这四个字段：
 
 | 字段 | 类型 | 含义 |
 |---|---|---|
@@ -345,7 +345,7 @@ poManagementSystem/
 | `created_at` | DATETIME | 创建时间 |
 | `updated_at` | DATETIME | 更新时间（更新或删除的时刻） |
 
-字段名与类型在所有表上完全一致，因此任何一张表都能用同一套查询助手、同一套序列化逻辑、同一套列表展示——九张选项表因此不必各自定义一遍映射。
+字段名与类型在所有表上完全一致，因此任何一张表都能用同一套查询助手、同一套序列化逻辑、同一套列表展示——六张选项表因此不必各自定义一遍映射。
 
 **为什么操作人存手机号而不是内部 id**：手机号就是用户在系统里的唯一标识，审计记录里直接看得懂是谁操作的。存数字 id 的话，看到「由 1042 创建」还得再查一次表才知道是谁；存手机号则是「由 13801380000 创建」。代价是手机号可变，因此该外键须带 `ON UPDATE CASCADE`（见 D17）。
 
@@ -394,7 +394,7 @@ poManagementSystem/
 | operator | VARCHAR(20) | FK → users.phone, NOT NULL | 操作人手机号 |
 | created_at / updated_at | DATETIME | NOT NULL | |
 
-**九张选项表**（结构相同，表名各不相同）
+**六张选项表**（结构相同，表名各不相同）
 
 `charge_codes`、`departments`、`branches`、`currencies`、`creditors`、`debtors`
 
@@ -511,7 +511,7 @@ poManagementSystem/
 本项目为全新系统，无历史数据与线上流量，迁移风险极低。
 
 1. `docker-compose up -d` 启动本地 MySQL 8。
-2. 后端执行 `alembic upgrade head` 创建 `users`、`shipments`、`charge_info` 与九张选项表及索引、CHECK 约束。
+2. 后端执行 `alembic upgrade head` 创建 `users`、`shipments`、`charge_info` 与六张选项表及索引、CHECK 约束。
 3. 执行 `python -m app.cli create-admin --phone <手机号> --username <名称>` 创建首个管理员账号。
 4. 执行 `python -m app.cli seed-options` 预置初始选项：费用代码 `DHLF`/`OCUC`/`OINSUR`、部门 `FIS`/`FES`/`FIA`/`FEA`、分支机构 `SHL`、币种 `USD`/`CNY`/`EUR`/`HKD`；应付对象与应收对象由管理员在维护页补齐。
 5. 前端 `npm install && npm run dev`，Vite proxy 指向后端 `http://localhost:8000`。

@@ -7,6 +7,7 @@ __pycache__/
 *.egg-info/
 .venv/
 venv/
+.pytest_cache/
 
 # 环境配置（.env.example 需要入库，故不匹配 .example）
 .env

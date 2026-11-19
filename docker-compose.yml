@@ -1,0 +1,25 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: shipment_mgmt_db
+    restart: unless-stopped
+    environment:
+      # 本地开发用 root / root。若你的 MySQL 另有口令，
+      # 请同时改这里与 backend/.env.example 的 DATABASE_URL。
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: shipment_mgmt
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  db_data:
