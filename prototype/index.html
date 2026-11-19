@@ -231,24 +231,21 @@
         </div>
 
         <div class="tbl-scroll">
-          <table class="tbl tbl-split">
+          <table class="tbl tbl-split" id="charge-info-table">
             <thead>
               <tr>
-                <th rowspan="2" class="lead"><span class="bi-cn">描述</span><span class="bi-en">Description</span></th>
                 <th rowspan="2" class="lead"><span class="bi-cn">费用代码</span><span class="bi-en">Charge Code</span></th>
                 <th rowspan="2" class="lead"><span class="bi-cn">任务码</span><span class="bi-en">Job No.</span></th>
-                <th colspan="5" class="band band-pay"><span class="bi-cn">应付</span><span class="bi-en">Payable</span></th>
+                <th colspan="4" class="band band-pay"><span class="bi-cn">应付</span><span class="bi-en">Payable</span></th>
                 <th colspan="2" class="band band-rec"><span class="bi-cn">应收</span><span class="bi-en">Receivable</span></th>
-                <th rowspan="2" class="lead"><span class="bi-cn">账单类型</span><span class="bi-en">Inv. Type</span></th>
                 <th rowspan="2" class="act"><span class="bi-cn">操作</span><span class="bi-en">Actions</span></th>
               </tr>
               <tr>
-                <th><span class="bi-cn">部门</span><span class="bi-en">Department</span></th><th><span class="bi-cn">分支机构</span><span class="bi-en">Branch</span></th><th class="num"><span class="bi-cn">金额</span><span class="bi-en">OS Cost Amt</span></th><th><span class="bi-cn">税率</span><span class="bi-en">Cost Tax ID</span></th><th><span class="bi-cn">应付对象</span><span class="bi-en">Creditor</span></th><th class="num"><span class="bi-cn">金额</span><span class="bi-en">OS Sell Amt</span></th><th><span class="bi-cn">应收对象</span><span class="bi-en">Debtor</span></th>
+                <th><span class="bi-cn">部门</span><span class="bi-en">Department</span></th><th><span class="bi-cn">分支机构</span><span class="bi-en">Branch</span></th><th class="num"><span class="bi-cn">金额</span><span class="bi-en">OS Cost Amt</span></th><th><span class="bi-cn">应付对象</span><span class="bi-en">Creditor</span></th><th class="num"><span class="bi-cn">金额</span><span class="bi-en">OS Sell Amt</span></th><th><span class="bi-cn">应收对象</span><span class="bi-en">Debtor</span></th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td class="c-desc">上海港至鹿特丹海运费</td>
+              <tr data-branch="SHL" data-creditor="CNSHL" data-debtor="CNSHO">
                 <td class="mono">DHLF</td>
                 <td class="mono dim">SH-20261119-0007</td>
                 <td class="mono">FIS</td>
@@ -256,49 +253,56 @@
                 <td class="num">
                   <div class="amt-line"><span class="cur">USD</span><span class="amt amt-pay">8,600.00</span></div>
                 </td>
-                <td class="mono">VAT6</td>
-                <td>中远海运物流</td>
+                <td>CNSHL</td>
                 <td class="num">
                   <div class="amt-line"><span class="cur">CNY</span><span class="amt amt-rec">61,400.00</span></div>
                 </td>
-                <td>中远海运集运</td>
-                <td class="mono">FIN</td>
+                <td>CNSHO</td>
                 <td class="act"><a href="#" class="lnk">编辑</a><a href="#" class="lnk lnk-danger">删除</a></td>
               </tr>
-              <tr>
-                <td class="c-desc">目的港换单费</td>
+              <tr data-branch="SHO" data-creditor="CNSHL" data-debtor="CNSHO">
                 <td class="mono">OCUC</td>
                 <td class="mono dim">SH-20261119-0007</td>
-                <td class="mono">FIA</td>
-                <td class="mono">SHL</td>
+                <td class="mono">FIS</td>
+                <td class="mono">SHO</td>
                 <td class="num">
                   <div class="amt-line"><span class="cur">USD</span><span class="amt amt-pay">2,600.00</span></div>
                 </td>
-                <td class="mono">VAT6</td>
-                <td>中远海运物流</td>
+                <td>CNSHL</td>
                 <td class="num">
                   <div class="amt-line"><span class="cur">CNY</span><span class="amt amt-rec">27,200.00</span></div>
                 </td>
-                <td>中远海运集运</td>
-                <td class="mono">CUR</td>
+                <td>CNSHO</td>
                 <td class="act"><a href="#" class="lnk">编辑</a><a href="#" class="lnk lnk-danger">删除</a></td>
               </tr>
-              <tr>
-                <td class="c-desc">货运保险费</td>
+              <tr data-branch="SHL" data-creditor="MAERSK" data-debtor="中远海运集运">
                 <td class="mono">OINSUR</td>
                 <td class="mono dim">SH-20261119-0007</td>
-                <td class="mono">FES</td>
+                <td class="mono">FIS</td>
                 <td class="mono">SHL</td>
                 <td class="num">
                   <div class="amt-line"><span class="cur">USD</span><span class="amt amt-pay">1,200.00</span></div>
                 </td>
-                <td class="mono">VAT6</td>
-                <td>中远海运物流</td>
+                <td>MAERSK</td>
                 <td class="num">
                   <div class="amt-line"><span class="cur">CNY</span><span class="amt amt-rec">12,800.00</span></div>
                 </td>
                 <td>中远海运集运</td>
-                <td class="mono">NON-pending</td>
+                <td class="act"><a href="#" class="lnk">编辑</a><a href="#" class="lnk lnk-danger">删除</a></td>
+              </tr>
+              <tr data-branch="SHO" data-creditor="CNSHL" data-debtor="CNSHO" data-generated="1">
+                <td class="mono">DHLF <span class="tag-rel">关联</span></td>
+                <td class="mono dim">SH-20261119-0007</td>
+                <td class="mono">FIS</td>
+                <td class="mono">SHO</td>
+                <td class="num">
+                  <div class="amt-line"><span class="cur">CNY</span><span class="amt amt-pay">61,400.00</span></div>
+                </td>
+                <td>CNSHL</td>
+                <td class="num">
+                  <div class="amt-line"><span class="cur">CNY</span><span class="amt amt-rec">61,400.00</span></div>
+                </td>
+                <td>CNSHO</td>
                 <td class="act"><a href="#" class="lnk">编辑</a><a href="#" class="lnk lnk-danger">删除</a></td>
               </tr>
 </tbody>
@@ -321,14 +325,11 @@
 
       <div class="tabs" role="tablist">
         <button class="tab is-on" role="tab"><span class="bi-cn">费用代码</span><span class="bi-en">Charge Code</span></button>
-        <button class="tab" role="tab"><span class="bi-cn">描述</span><span class="bi-en">Description</span></button>
         <button class="tab" role="tab"><span class="bi-cn">应付部门</span><span class="bi-en">Department</span></button>
         <button class="tab" role="tab"><span class="bi-cn">应付分支机构</span><span class="bi-en">Branch</span></button>
         <button class="tab" role="tab"><span class="bi-cn">币种</span><span class="bi-en">Currency</span></button>
-        <button class="tab" role="tab"><span class="bi-cn">应付税率</span><span class="bi-en">Cost Tax ID</span></button>
         <button class="tab" role="tab"><span class="bi-cn">应付对象</span><span class="bi-en">Creditor</span></button>
         <button class="tab" role="tab"><span class="bi-cn">应收对象</span><span class="bi-en">Debtor</span></button>
-        <button class="tab" role="tab"><span class="bi-cn">账单类型</span><span class="bi-en">Inv. Type</span></button>
       </div>
 
       <div class="sheet">
@@ -464,32 +465,14 @@
     </header>
 
     <div class="modal-body">
-      <div class="grp">
-        <p class="grp-title"><span class="bi-cn">费用</span><span class="bi-en">Charge</span></p>
+      <div class="grp grp-pay">
+
+        <p class="grp-title"><span class="bi-cn">应付</span><span class="bi-en">Payable</span></p>
         <div class="grid">
-          <label class="field span2">
-            <span class="field-label"><span class="bi-cn">描述</span><span class="bi-en">Description</span></span>
-            <input class="input" list="dl-desc" placeholder="选择或直接输入" value="上海港至鹿特丹海运费">
-            <datalist id="dl-desc">
-              <option value="上海港至鹿特丹海运费"></option>
-              <option value="目的港换单费"></option>
-              <option value="货运保险费"></option>
-            </datalist>
-          </label>
           <label class="field">
             <span class="field-label"><span class="bi-cn">费用代码</span><span class="bi-en">Charge Code</span></span>
             <select class="input"><option>DHLF</option><option>OCUC</option><option>OINSUR</option></select>
           </label>
-          <label class="field">
-            <span class="field-label"><span class="bi-cn">账单类型</span><span class="bi-en">Inv. Type</span></span>
-            <select class="input"><option>FIN</option><option>CUR</option><option>NON-pending</option></select>
-          </label>
-        </div>
-      </div>
-
-      <div class="grp grp-pay">
-        <p class="grp-title"><span class="bi-cn">应付</span><span class="bi-en">Payable</span></p>
-        <div class="grid">
           <label class="field">
             <span class="field-label"><span class="bi-cn">应付部门</span><span class="bi-en">Department</span></span>
             <select class="input"><option>FIS</option><option>FES</option><option>FIA</option><option>FEA</option></select>
@@ -507,12 +490,8 @@
             <input class="input mono" inputmode="decimal" placeholder="0.00">
           </label>
           <label class="field">
-            <span class="field-label"><span class="bi-cn">应付税率</span><span class="bi-en">Cost Tax ID</span></span>
-            <select class="input"><option>VAT6</option><option>WHT</option></select>
-          </label>
-          <label class="field">
             <span class="field-label"><span class="bi-cn">应付对象</span><span class="bi-en">Creditor</span></span>
-            <select class="input"><option>中远海运物流</option><option>MAERSK</option><option>中外运</option></select>
+            <select class="input"><option>CNSHL</option><option>中远海运物流</option><option>MAERSK</option><option>中外运</option></select>
           </label>
         </div>
       </div>
@@ -530,7 +509,7 @@
           </label>
           <label class="field">
             <span class="field-label"><span class="bi-cn">应收对象</span><span class="bi-en">Debtor</span></span>
-            <select class="input"><option>中远海运集运</option><option>招商局能源运输</option></select>
+            <select class="input"><option>CNSHO</option><option>中远海运集运</option><option>招商局能源运输</option></select>
           </label>
         </div>
       </div>

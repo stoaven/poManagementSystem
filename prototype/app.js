@@ -86,6 +86,26 @@
     if (e.key === "Escape" && !modal.hidden) { modal.hidden = true; }
   });
 
+  /* ---------- 关联收费用的生成：满足条件时提供该操作 ---------- */
+  var RELATED = {
+    "SHL|CNSHO": { branch: "SHO", creditor: "CNSHL" },   // 应付分支 SHL + 应收对象 CNSHO
+    "SHO|CNSHL": { branch: "SHL", creditor: "CNSHO" }    // 应付分支 SHO + 应付对象 CNSHL
+  };
+  Array.prototype.forEach.call(document.querySelectorAll("#charge-info-table tbody tr"), function (tr) {
+    if (tr.getAttribute("data-generated") === "1") { return; }   // 关联生成的记录不再提供该操作
+    var b = tr.getAttribute("data-branch");
+    var hit = RELATED[b + "|" + tr.getAttribute("data-debtor")] ||
+              RELATED[b + "|" + tr.getAttribute("data-creditor")];
+    if (!hit) { return; }
+    var act = tr.querySelector("td.act");
+    if (!act) { return; }
+    var btn = document.createElement("a");
+    btn.href = "#";
+    btn.className = "lnk lnk-rel";
+    btn.textContent = "新增关联收费用";
+    act.insertBefore(btn, act.firstChild);
+  });
+
   /* ---------- 选项名称省略时以代码呈现（与 spec「名称可省略」一致） ---------- */
   Array.prototype.forEach.call(document.querySelectorAll(".opt-name"), function (cell) {
     var row = cell.closest("tr");

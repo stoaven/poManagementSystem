@@ -86,6 +86,14 @@ body {
 }
 .lnk:hover { color: var(--ink); border-bottom-color: var(--ink-3); }
 .lnk-danger:hover { color: var(--pay); border-bottom-color: var(--pay); }
+.lnk-rel { color: var(--rec); }
+.lnk-rel:hover { color: var(--rec); border-bottom-color: var(--rec); }
+.tag-rel {
+  display: inline-block; margin-left: 5px; padding: 0 4px;
+  font-size: 10px; color: var(--rec);
+  border: 1px solid var(--rec-rule); border-radius: 2px;
+  background: var(--rec-wash); vertical-align: 1px;
+}
 .lnk-mute { color: var(--ink-3); }
 .lnk-mute:hover { color: var(--ink-2); border-bottom-color: var(--rule); }
 
