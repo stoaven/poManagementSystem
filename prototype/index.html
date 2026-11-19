@@ -66,7 +66,7 @@
       <header class="page-head">
         <div>
           <h1 class="page-title">货运订单</h1>
-          <p class="page-meta">按货运订单号与金额区间检索</p>
+          <p class="page-meta">按货运订单号与业务状态检索</p>
         </div>
         <div class="page-actions">
           <button class="btn btn-primary" data-action="new-shipment">新建货运订单</button>
@@ -82,24 +82,6 @@
           <span class="f-label"><span class="bi-cn">状态</span><span class="bi-en">Status</span></span>
           <select class="input input-sm">
             <option>全部</option><option>草稿</option><option>已确认</option><option>已完成</option><option>已取消</option>
-          </select>
-        </label>
-        <label class="f">
-          <span class="f-label"><span class="bi-cn">应付币种</span><span class="bi-en">Cost Currency</span></span>
-          <select class="input input-sm">
-            <option>全部</option><option>USD</option><option>CNY</option><option>EUR</option><option>HKD</option>
-          </select>
-        </label>
-        <label class="f">
-          <span class="f-label"><span class="bi-cn">应付金额区间</span><span class="bi-en">Payable Amount Range</span></span>
-          <div class="range">
-            <input class="input input-sm" placeholder="下限"><span class="range-dash">–</span><input class="input input-sm" placeholder="上限">
-          </div>
-        </label>
-        <label class="f">
-          <span class="f-label"><span class="bi-cn">应收币种</span><span class="bi-en">Sell Currency</span></span>
-          <select class="input input-sm">
-            <option>全部</option><option>USD</option><option>CNY</option><option>EUR</option><option>HKD</option>
           </select>
         </label>
         <div class="f f-btns">
@@ -235,7 +217,6 @@
             <thead>
               <tr>
                 <th rowspan="2" class="lead"><span class="bi-cn">费用代码</span><span class="bi-en">Charge Code</span></th>
-                <th rowspan="2" class="lead"><span class="bi-cn">任务码</span><span class="bi-en">Job No.</span></th>
                 <th colspan="4" class="band band-pay"><span class="bi-cn">应付</span><span class="bi-en">Payable</span></th>
                 <th colspan="2" class="band band-rec"><span class="bi-cn">应收</span><span class="bi-en">Receivable</span></th>
                 <th rowspan="2" class="act"><span class="bi-cn">操作</span><span class="bi-en">Actions</span></th>
@@ -247,7 +228,6 @@
             <tbody>
               <tr data-branch="SHL" data-creditor="CNSHL" data-debtor="CNSHO">
                 <td class="mono">DHLF</td>
-                <td class="mono dim">SH-20261119-0007</td>
                 <td class="mono">FIS</td>
                 <td class="mono">SHL</td>
                 <td class="num">
@@ -262,7 +242,6 @@
               </tr>
               <tr data-branch="SHO" data-creditor="CNSHL" data-debtor="CNSHO">
                 <td class="mono">OCUC</td>
-                <td class="mono dim">SH-20261119-0007</td>
                 <td class="mono">FIS</td>
                 <td class="mono">SHO</td>
                 <td class="num">
@@ -277,7 +256,6 @@
               </tr>
               <tr data-branch="SHL" data-creditor="MAERSK" data-debtor="中远海运集运">
                 <td class="mono">OINSUR</td>
-                <td class="mono dim">SH-20261119-0007</td>
                 <td class="mono">FIS</td>
                 <td class="mono">SHL</td>
                 <td class="num">
@@ -292,7 +270,6 @@
               </tr>
               <tr data-branch="SHO" data-creditor="CNSHL" data-debtor="CNSHO" data-generated="1">
                 <td class="mono">DHLF <span class="tag-rel">关联</span></td>
-                <td class="mono dim">SH-20261119-0007</td>
                 <td class="mono">FIS</td>
                 <td class="mono">SHO</td>
                 <td class="num">
@@ -514,11 +491,10 @@
         </div>
       </div>
 
-      <p class="note">任务码由所属货运订单带出。应付与应收两侧的币种各自独立，不做汇率折算。</p>
+      <p class="note">应付与应收两侧的币种各自独立，不做汇率折算。</p>
     </div>
 
     <footer class="modal-foot">
-      <span class="modal-hint">任务码 <span class="mono">SH-20261119-0007</span> 自动带出</span>
       <div class="modal-btns">
         <button class="btn btn-ghost" data-close>取消</button>
         <button class="btn btn-primary">保存</button>
