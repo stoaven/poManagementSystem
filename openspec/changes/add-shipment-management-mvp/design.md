@@ -536,7 +536,7 @@ poManagementSystem/
 1. `docker-compose up -d` 启动本地 MySQL 8。
 2. 后端执行 `alembic upgrade head` 创建 `users`、`shipments`、`charge_info` 与九张选项表及索引、CHECK 约束。
 3. 执行 `python -m app.cli create-admin --phone <手机号> --username <名称>` 创建首个管理员账号。
-4. 执行 `python -m app.cli seed-options` 预置初始选项：部门 `FIS`/`FES`/`FIA`/`FEA`、分支机构 `SHL`、币种 `USD`/`CNY`/`EUR`/`HKD`、账单类型 `FIN`/`CUR`/`NON-pending`；其余由管理员在维护页补齐。
+4. 执行 `python -m app.cli seed-options` 预置初始选项：费用代码 `DHLF`/`OCUC`/`OINSUR`、部门 `FIS`/`FES`/`FIA`/`FEA`、分支机构 `SHL`、币种 `USD`/`CNY`/`EUR`/`HKD`、账单类型 `FIN`/`CUR`/`NON-pending`；其余由管理员在维护页补齐。
 5. 前端 `npm install && npm run dev`，Vite proxy 指向后端 `http://localhost:8000`。
 6. 后端 `pytest`、前端 `vitest run` 全绿后再联调。
 

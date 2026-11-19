@@ -121,7 +121,12 @@
 
 ### Requirement: 初始选项数据
 
-系统 SHALL 预置一批初始选项项，使系统交付后可直接使用：应付部门预置 `FIS`、`FES`、`FIA`、`FEA`，应付分支机构预置 `SHL`，币种预置 `USD`、`CNY`、`EUR`、`HKD`，账单类型预置 `FIN`、`CUR`、`NON-pending`。其余选项表不预置内容。
+系统 SHALL 预置一批初始选项项，使系统交付后可直接使用：费用代码预置 `DHLF`、`OCUC`、`OINSUR`，应付部门预置 `FIS`、`FES`、`FIA`、`FEA`，应付分支机构预置 `SHL`，币种预置 `USD`、`CNY`、`EUR`、`HKD`，账单类型预置 `FIN`、`CUR`、`NON-pending`。其余选项表不预置内容。
+
+#### Scenario: 初始费用代码可用
+
+- **WHEN** 用户选择费用代码
+- **THEN** 候选列表中包含 `DHLF`、`OCUC`、`OINSUR`
 
 #### Scenario: 初始部门与分支机构可用
 

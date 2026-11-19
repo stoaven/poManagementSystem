@@ -249,7 +249,7 @@
             <tbody>
               <tr>
                 <td class="c-desc">上海港至鹿特丹海运费</td>
-                <td class="mono">FRT</td>
+                <td class="mono">DHLF</td>
                 <td class="mono dim">SH-20261119-0007</td>
                 <td class="mono">FIS</td>
                 <td class="mono">SHL</td>
@@ -267,7 +267,7 @@
               </tr>
               <tr>
                 <td class="c-desc">目的港换单费</td>
-                <td class="mono">DOC</td>
+                <td class="mono">OCUC</td>
                 <td class="mono dim">SH-20261119-0007</td>
                 <td class="mono">FIA</td>
                 <td class="mono">SHL</td>
@@ -284,8 +284,8 @@
                 <td class="act"><a href="#" class="lnk">编辑</a><a href="#" class="lnk lnk-danger">删除</a></td>
               </tr>
               <tr>
-                <td class="c-desc">燃油附加费 FAK</td>
-                <td class="mono">FRT</td>
+                <td class="c-desc">货运保险费</td>
+                <td class="mono">OINSUR</td>
                 <td class="mono dim">SH-20261119-0007</td>
                 <td class="mono">FES</td>
                 <td class="mono">SHL</td>
@@ -345,44 +345,28 @@
             </thead>
             <tbody>
             <tr>
-              <td class="mono">FRT</td>
-              <td>海运费</td>
+              <td class="mono opt-code">DHLF</td>
+              <td class="opt-name"></td>
               <td><span class="switch is-on"><i></i></span></td>
               <td class="num mono">128</td>
               <td class="mono">2026-11-18 16:02</td>
               <td class="act"><a href="#" class="lnk">编辑</a><a href="#" class="lnk">停用</a><a href="#" class="lnk lnk-danger">删除</a></td>
             </tr>
             <tr>
-              <td class="mono">DOC</td>
-              <td>单证费</td>
+              <td class="mono opt-code">OCUC</td>
+              <td class="opt-name"></td>
               <td><span class="switch is-on"><i></i></span></td>
               <td class="num mono">96</td>
               <td class="mono">2026-11-18 16:02</td>
               <td class="act"><a href="#" class="lnk">编辑</a><a href="#" class="lnk">停用</a><a href="#" class="lnk lnk-danger">删除</a></td>
             </tr>
             <tr>
-              <td class="mono">THC</td>
-              <td>换单费</td>
-              <td><span class="switch is-on"><i></i></span></td>
-              <td class="num mono">74</td>
-              <td class="mono">2026-11-17 11:20</td>
-              <td class="act"><a href="#" class="lnk">编辑</a><a href="#" class="lnk">停用</a><a href="#" class="lnk lnk-danger">删除</a></td>
-            </tr>
-            <tr>
-              <td class="mono">ENS</td>
-              <td>燃油附加费</td>
+              <td class="mono opt-code">OINSUR</td>
+              <td class="opt-name"></td>
               <td><span class="switch is-off"><i></i></span></td>
               <td class="num mono">31</td>
               <td class="mono">2026-11-15 09:44</td>
               <td class="act"><a href="#" class="lnk">编辑</a><a href="#" class="lnk">启用</a><a href="#" class="lnk lnk-danger">删除</a></td>
-            </tr>
-            <tr>
-              <td class="mono">INS</td>
-              <td>保险费</td>
-              <td><span class="switch is-on"><i></i></span></td>
-              <td class="num mono">12</td>
-              <td class="mono">2026-11-12 14:35</td>
-              <td class="act"><a href="#" class="lnk">编辑</a><a href="#" class="lnk">停用</a><a href="#" class="lnk lnk-danger">删除</a></td>
             </tr>
 </tbody>
           </table>
@@ -485,16 +469,16 @@
         <div class="grid">
           <label class="field span2">
             <span class="field-label"><span class="bi-cn">描述</span><span class="bi-en">Description</span></span>
-            <input class="input" list="dl-desc" placeholder="选择或直接输入" value="上海港至汉堡港海运费">
+            <input class="input" list="dl-desc" placeholder="选择或直接输入" value="上海港至鹿特丹海运费">
             <datalist id="dl-desc">
               <option value="上海港至鹿特丹海运费"></option>
               <option value="目的港换单费"></option>
-              <option value="燃油附加费 FAK"></option>
+              <option value="货运保险费"></option>
             </datalist>
           </label>
           <label class="field">
             <span class="field-label"><span class="bi-cn">费用代码</span><span class="bi-en">Charge Code</span></span>
-            <select class="input"><option>FRT · 海运费</option><option>DOC · 单证费</option><option>THC · 换单费</option><option>ENS · 燃油附加费</option></select>
+            <select class="input"><option>DHLF</option><option>OCUC</option><option>OINSUR</option></select>
           </label>
           <label class="field">
             <span class="field-label"><span class="bi-cn">账单类型</span><span class="bi-en">Inv. Type</span></span>

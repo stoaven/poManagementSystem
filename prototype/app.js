@@ -86,6 +86,13 @@
     if (e.key === "Escape" && !modal.hidden) { modal.hidden = true; }
   });
 
+  /* ---------- 选项名称省略时以代码呈现（与 spec「名称可省略」一致） ---------- */
+  Array.prototype.forEach.call(document.querySelectorAll(".opt-name"), function (cell) {
+    var row = cell.closest("tr");
+    var code = row && row.querySelector(".opt-code");
+    if (code) { cell.textContent = code.textContent; }
+  });
+
   /* ---------- 从详情返回列表 ---------- */
   var back = document.createElement("button");
   back.className = "btn btn-ghost";
