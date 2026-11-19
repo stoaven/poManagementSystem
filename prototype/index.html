@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>货运订单费用管理 · 原型</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<!-- ======================= 登录 ======================= -->
+<div class="login" id="view-login">
+  <div class="login-sheet">
+    <div class="copy-edge" aria-hidden="true"><i class="ce ce-pink"></i><i class="ce ce-blue"></i><i class="ce ce-green"></i></div>
+    <div class="login-body">
+      <p class="org">内部系统 · 货运运营</p>
+      <h1 class="login-title">货运订单费用管理</h1>
+      <p class="login-sub">录入一笔货运订单的应付与应收</p>
+      <form class="login-form" id="login-form">
+        <label class="field">
+          <span class="field-label"><span class="bi-cn">手机号</span><span class="bi-en">Phone</span></span>
+          <input class="input" type="tel" inputmode="numeric" autocomplete="username" placeholder="11 位手机号" value="13801380000">
+        </label>
+        <button class="btn btn-primary btn-block" type="submit">登录</button>
+      </form>
+      <p class="login-note">账号由管理员开通，输入手机号即可登录。本系统以手机号识别身份，请勿外传同事手机号。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= 应用 ======================= -->
+<div class="app" id="view-app" hidden>
+
+  <aside class="rail">
+    <div class="rail-brand">
+      <span class="brand-mark">运</span>
+      <span class="brand-text">货运订单<br>费用管理</span>
+    </div>
+    <nav class="rail-nav">
+      <button class="rail-item is-active" data-go="shipments">
+        <svg viewBox="0 0 20 20" class="ico" aria-hidden="true"><path d="M2.5 6.5h15v9h-15zM2.5 6.5 6 3.5h8l3.5 3M6.5 6.5v9M13.5 6.5v9"/></svg>
+        <span>货运订单</span>
+      </button>
+      <button class="rail-item" data-go="options">
+        <svg viewBox="0 0 20 20" class="ico" aria-hidden="true"><path d="M3 5.5h5M11 5.5h6M3 14.5h6M12 14.5h5"/><circle cx="9.5" cy="5.5" r="1.8"/><circle cx="10.5" cy="14.5" r="1.8"/></svg>
+        <span>选项维护</span>
+      </button>
+      <button class="rail-item" data-go="users">
+        <svg viewBox="0 0 20 20" class="ico" aria-hidden="true"><circle cx="10" cy="7" r="3.2"/><path d="M3.8 17c0-3.2 2.8-5.2 6.2-5.2s6.2 2 6.2 5.2"/></svg>
+        <span>用户管理</span>
+      </button>
+    </nav>
+    <div class="rail-foot">
+      <div class="who">
+        <span class="who-name">张明</span>
+        <span class="who-role">管理员</span>
+      </div>
+      <span class="who-phone">138****8000</span>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- ---------- 货运订单列表 ---------- -->
+    <section class="view" data-view="shipments">
+      <header class="page-head">
+        <div>
+          <h1 class="page-title">货运订单</h1>
+          <p class="page-meta">按货运订单号与金额区间检索</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-primary" data-action="new-shipment">新建货运订单</button>
+        </div>
+      </header>
+
+      <form class="filter-band" id="filter-band">
+        <label class="f">
+          <span class="f-label"><span class="bi-cn">货运订单号</span><span class="bi-en">Shipment No.</span></span>
+          <input class="input input-sm" placeholder="SH-2026">
+        </label>
+        <label class="f">
+          <span class="f-label"><span class="bi-cn">状态</span><span class="bi-en">Status</span></span>
+          <select class="input input-sm">
+            <option>全部</option><option>草稿</option><option>已确认</option><option>已完成</option><option>已取消</option>
+          </select>
+        </label>
+        <label class="f">
+          <span class="f-label"><span class="bi-cn">应付币种</span><span class="bi-en">Cost Currency</span></span>
+          <select class="input input-sm">
+            <option>全部</option><option>USD</option><option>CNY</option><option>EUR</option><option>HKD</option>
+          </select>
+        </label>
+        <label class="f">
+          <span class="f-label"><span class="bi-cn">应付金额区间</span><span class="bi-en">Payable Amount Range</span></span>
+          <div class="range">
+            <input class="input input-sm" placeholder="下限"><span class="range-dash">–</span><input class="input input-sm" placeholder="上限">
+          </div>
+        </label>
+        <label class="f">
+          <span class="f-label"><span class="bi-cn">应收币种</span><span class="bi-en">Sell Currency</span></span>
+          <select class="input input-sm">
+            <option>全部</option><option>USD</option><option>CNY</option><option>EUR</option><option>HKD</option>
+          </select>
+        </label>
+        <div class="f f-btns">
+          <button class="btn btn-primary" type="button">查询</button>
+          <button class="btn btn-ghost" type="button">重置</button>
+        </div>
+      </form>
+
+      <div class="sheet">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th><span class="bi-cn">货运订单号</span><span class="bi-en">Shipment No.</span></th>
+                <th class="num"><span class="bi-cn">费用信息</span><span class="bi-en">Charge Info</span></th>
+                <th class="num"><span class="bi-cn">应付合计</span><span class="bi-en">Payable Total</span></th>
+                <th class="num"><span class="bi-cn">应收合计</span><span class="bi-en">Receivable Total</span></th>
+                <th><span class="bi-cn">状态</span><span class="bi-en">Status</span></th>
+                <th><span class="bi-cn">操作人</span><span class="bi-en">Operator</span></th>
+                <th><span class="bi-cn">创建时间</span><span class="bi-en">Created At</span></th>
+                <th><span class="bi-cn">更新时间</span><span class="bi-en">Updated At</span></th>
+                <th class="act"><span class="bi-cn">操作</span><span class="bi-en">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+            <tr class="row-link">
+              <td class="mono">SH-20261119-0007</td>
+              <td class="num mono">3</td>
+              <td class="num"><span class="cur">USD</span> <span class="amt amt-pay">12,400.00</span></td>
+              <td class="num"><span class="cur">CNY</span> <span class="amt amt-rec">101,400.00</span></td>
+              <td><span class="status status-done"><i class="dot"></i>已完成</span></td>
+              <td class="mono dim">张明</td>
+              <td class="mono">2026-11-19 09:24</td>
+              <td class="mono">2026-11-19 10:12</td>
+              <td class="act"><a href="#" class="lnk">查看</a><a href="#" class="lnk">编辑</a><a href="#" class="lnk lnk-danger">删除</a></td>
+            </tr>
+            <tr>
+              <td class="mono">SH-20261119-0008</td>
+              <td class="num mono">2</td>
+              <td class="num"><span class="cur">USD</span> <span class="amt amt-pay">3,200.00</span></td>
+              <td class="num"><span class="cur">CNY</span> <span class="amt amt-rec">21,400.00</span></td>
+              <td><span class="status status-confirmed"><i class="dot"></i>已确认</span></td>
+              <td class="mono dim">李静</td>
+              <td class="mono">2026-11-19 08:51</td>
+              <td class="mono">2026-11-19 09:05</td>
+              <td class="act"><a href="#" class="lnk">查看</a><a href="#" class="lnk">编辑</a><a href="#" class="lnk lnk-danger">删除</a></td>
+            </tr>
+            <tr>
+              <td class="mono">SH-20261118-0011</td>
+              <td class="num mono">5</td>
+              <td class="num"><span class="cur">EUR</span> <span class="amt amt-pay">8,900.00</span></td>
+              <td class="num"><span class="cur">USD</span> <span class="amt amt-rec">14,200.00</span></td>
+              <td><span class="status status-draft"><i class="dot"></i>草稿</span></td>
+              <td class="mono dim">王磊</td>
+              <td class="mono">2026-11-18 17:06</td>
+              <td class="mono">2026-11-19 08:40</td>
+              <td class="act"><a href="#" class="lnk">查看</a><a href="#" class="lnk">编辑</a><a href="#" class="lnk lnk-danger">删除</a></td>
+            </tr>
+            <tr>
+              <td class="mono">SH-20261118-0009</td>
+              <td class="num mono">1</td>
+              <td class="num"><span class="cur">HKD</span> <span class="amt amt-pay">12,000.00</span></td>
+              <td class="num"><span class="cur">HKD</span> <span class="amt amt-rec">118,000.00</span></td>
+              <td><span class="status status-confirmed"><i class="dot"></i>已确认</span></td>
+              <td class="mono dim">张明</td>
+              <td class="mono">2026-11-18 15:33</td>
+              <td class="mono">2026-11-18 16:02</td>
+              <td class="act"><a href="#" class="lnk">查看</a><a href="#" class="lnk">编辑</a><a href="#" class="lnk lnk-danger">删除</a></td>
+            </tr>
+            <tr>
+              <td class="mono">SH-20261117-0004</td>
+              <td class="num mono">4</td>
+              <td class="num"><span class="cur">CNY</span> <span class="amt amt-pay">86,000.00</span></td>
+              <td class="num"><span class="cur">CNY</span> <span class="amt amt-rec">512,000.00</span></td>
+              <td><span class="status status-cancelled"><i class="dot"></i>已取消</span></td>
+              <td class="mono dim">李静</td>
+              <td class="mono">2026-11-17 11:18</td>
+              <td class="mono">2026-11-18 09:26</td>
+              <td class="act"><a href="#" class="lnk">查看</a><a href="#" class="lnk">编辑</a><a href="#" class="lnk lnk-danger">删除</a></td>
+            </tr>
+            </tbody>
+          </table>
+        <div class="pager">
+          <span class="pager-info">共 5 条 · 每页 20 条</span>
+          <div class="pager-ctl">
+            <button class="pg is-off">上一页</button>
+            <button class="pg is-on">1</button>
+            <button class="pg">2</button>
+            <button class="pg">3</button>
+            <button class="pg">下一页</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- 货运订单详情 ---------- -->
+    <section class="view" data-view="shipment-detail" hidden>
+      <header class="page-head head-doc">
+        <div class="doc">
+          <p class="doc-kicker">货运订单</p>
+          <h1 class="doc-no">SH-20261119-0007 <span class="status status-done"><i class="dot"></i>已完成</span></h1>
+          <div class="doc-meta">
+            <span class="kv"><span class="kv-k">业务日期</span><span class="kv-v mono">2026-11-19</span></span>
+            <span class="kv"><span class="kv-k">操作人</span><span class="kv-v mono">13801380000</span></span>
+            <span class="kv"><span class="kv-k">创建时间</span><span class="kv-v mono">2026-11-19 09:24</span></span>
+            <span class="kv"><span class="kv-k">更新时间</span><span class="kv-v mono">2026-11-19 10:12</span></span>
+          </div>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-ghost">编辑订单</button>
+          <button class="btn btn-ghost">删除订单</button>
+          <span class="flow">
+            <button class="btn btn-ghost">确认</button>
+            <button class="btn btn-ghost">完成</button>
+            <button class="btn btn-ghost">取消</button>
+          </span>
+        </div>
+      </header>
+
+      <div class="totals">
+        <div class="total total-pay">
+          <span class="total-label"><span class="bi-cn">应付合计</span><span class="bi-en">Payable Total</span></span>
+          <div class="total-line"><span class="cur cur-lg">USD</span><span class="amt amt-lg amt-pay">12,400.00</span></div>
+          <span class="total-sub">1 笔已结清 · 1 笔部分结算 · 1 笔待结算</span>
+        </div>
+        <div class="total total-rec">
+          <span class="total-label"><span class="bi-cn">应收合计</span><span class="bi-en">Receivable Total</span></span>
+          <div class="total-line"><span class="cur cur-lg">CNY</span><span class="amt amt-lg amt-rec">101,400.00</span></div>
+          <span class="total-sub">3 笔已结清</span>
+        </div>
+        <div class="total">
+          <span class="total-label"><span class="bi-cn">费用信息</span><span class="bi-en">Charge Info</span></span>
+          <div class="total-line"><span class="amt amt-lg">3</span><span class="total-unit">笔</span></div>
+          <span class="total-sub">应付与应收两侧均已填写</span>
+        </div>
+      </div>
+
+      <div class="sheet sheet-pad">
+        <div class="sheet-head">
+          <h2 class="sheet-title">费用信息</h2>
+          <button class="btn btn-primary" data-action="new-charge">新增费用信息</button>
+        </div>
+
+        <div class="tbl-scroll">
+          <table class="tbl tbl-split">
+            <thead>
+              <tr>
+                <th class="lead"><span class="bi-cn">描述</span><span class="bi-en">Description</span></th>
+                <th class="lead"><span class="bi-cn">费用代码</span><span class="bi-en">Charge Code</span></th>
+                <th class="lead"><span class="bi-cn">任务码</span><span class="bi-en">Job No.</span></th>
+                <th colspan="5" class="band band-pay"><span class="bi-cn">应付</span><span class="bi-en">Payable</span></th>
+                <th colspan="2" class="band band-rec"><span class="bi-cn">应收</span><span class="bi-en">Receivable</span></th>
+                <th class="lead"><span class="bi-cn">账单类型</span><span class="bi-en">Inv. Type</span></th>
+                <th class="act"><span class="bi-cn">操作</span><span class="bi-en">Actions</span></th>
+              </tr>
+              <tr>
+                <th><span class="bi-cn">部门</span><span class="bi-en">Department</span></th><th><span class="bi-cn">分支机构</span><span class="bi-en">Branch</span></th><th class="num"><span class="bi-cn">金额</span><span class="bi-en">OS Cost Amt</span></th><th><span class="bi-cn">税率</span><span class="bi-en">Cost Tax ID</span></th><th><span class="bi-cn">应付对象</span><span class="bi-en">Creditor</span></th><th class="num"><span class="bi-cn">金额</span><span class="bi-en">OS Sell Amt</span></th><th><span class="bi-cn">应收对象</span><span class="bi-en">Debtor</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="c-desc">上海港至鹿特丹海运费</td>
+                <td class="mono">FRT</td>
+                <td class="mono dim">SH-20261119-0007</td>
+                <td class="mono">FIS</td>
+                <td class="mono">SHL</td>
+                <td class="num">
+                  <div class="amt-line"><span class="cur">USD</span><span class="amt amt-pay">8,600.00</span></div>
+                  <span class="amt-sub">已结算 4,300.00 · 部分支付</span>
+                </td>
+                <td class="mono">VAT6</td>
+                <td>中远海运物流</td>
+                <td class="num">
+                  <div class="amt-line"><span class="cur">CNY</span><span class="amt amt-rec">61,400.00</span></div>
+                  <span class="amt-sub">已结算 61,400.00 · 已支付</span>
+                </td>
+                <td>中远海运集运</td>
+                <td class="mono">FIN</td>
+                <td class="act"><a href="#" class="lnk">编辑</a><a href="#" class="lnk lnk-danger">删除</a></td>
+              <td class="mono">2026-11-18 16:02</td>
+              </tr>
+              <tr>
+                <td class="c-desc">目的港换单费</td>
+                <td class="mono">DOC</td>
+                <td class="mono dim">SH-20261119-0007</td>
+                <td class="mono">FIA</td>
+                <td class="mono">SHL</td>
+                <td class="num">
+                  <div class="amt-line"><span class="cur">USD</span><span class="amt amt-pay">2,600.00</span></div>
+                  <span class="amt-sub">已结算 2,600.00 · 已支付</span>
+                </td>
+                <td class="mono">VAT6</td>
+                <td>中远海运物流</td>
+                <td class="num">
+                  <div class="amt-line"><span class="cur">CNY</span><span class="amt amt-rec">27,200.00</span></div>
+                  <span class="amt-sub">已结算 27,200.00 · 已支付</span>
+                </td>
+                <td>中远海运集运</td>
+                <td class="mono">CUR</td>
+                <td class="act"><a href="#" class="lnk">编辑</a><a href="#" class="lnk lnk-danger">删除</a></td>
+              <td class="mono">2026-11-18 16:02</td>
+              </tr>
+              <tr>
+                <td class="c-desc">燃油附加费 FAK</td>
+                <td class="mono">FRT</td>
+                <td class="mono dim">SH-20261119-0007</td>
+                <td class="mono">FES</td>
+                <td class="mono">SHL</td>
+                <td class="num">
+                  <div class="amt-line"><span class="cur">USD</span><span class="amt amt-pay">1,200.00</span></div>
+                  <span class="amt-sub">未结算 · 未支付</span>
+                </td>
+                <td class="mono">VAT6</td>
+                <td>中远海运物流</td>
+                <td class="num">
+                  <div class="amt-line"><span class="cur">CNY</span><span class="amt amt-rec">12,800.00</span></div>
+                  <span class="amt-sub">已结算 12,800.00 · 已支付</span>
+                </td>
+                <td>中远海运集运</td>
+                <td class="mono">NON-pending</td>
+                <td class="act"><a href="#" class="lnk">编辑</a><a href="#" class="lnk lnk-danger">删除</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- 选项维护 ---------- -->
+    <section class="view" data-view="options" hidden>
+      <header class="page-head">
+        <div>
+          <h1 class="page-title">选项维护</h1>
+          <p class="page-meta">九类可选值 · 仅管理员可修改</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-primary">新增选项</button>
+        </div>
+      </header>
+
+      <div class="tabs" role="tablist">
+        <button class="tab is-on" role="tab"><span class="bi-cn">费用代码</span><span class="bi-en">Charge Code</span></button>
+        <button class="tab" role="tab"><span class="bi-cn">描述</span><span class="bi-en">Description</span></button>
+        <button class="tab" role="tab"><span class="bi-cn">应付部门</span><span class="bi-en">Department</span></button>
+        <button class="tab" role="tab"><span class="bi-cn">应付分支机构</span><span class="bi-en">Branch</span></button>
+        <button class="tab" role="tab"><span class="bi-cn">币种</span><span class="bi-en">Currency</span></button>
+        <button class="tab" role="tab"><span class="bi-cn">应付税率</span><span class="bi-en">Cost Tax ID</span></button>
+        <button class="tab" role="tab"><span class="bi-cn">应付对象</span><span class="bi-en">Creditor</span></button>
+        <button class="tab" role="tab"><span class="bi-cn">应收对象</span><span class="bi-en">Debtor</span></button>
+        <button class="tab" role="tab"><span class="bi-cn">账单类型</span><span class="bi-en">Inv. Type</span></button>
+      </div>
+
+      <div class="sheet">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th><span class="bi-cn">代码</span><span class="bi-en">Code</span></th>
+                <th><span class="bi-cn">名称</span><span class="bi-en">Name</span></th>
+                <th><span class="bi-cn">状态</span><span class="bi-en">Status</span></th>
+                <th class="num"><span class="bi-cn">被引用</span><span class="bi-en">Referenced</span></th>
+                <th><span class="bi-cn">更新时间</span><span class="bi-en">Updated At</span></th>
+                <th class="act"><span class="bi-cn">操作</span><span class="bi-en">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+            <tr>
+              <td class="mono">FRT</td>
+              <td>海运费</td>
+              <td><span class="switch is-on"><i></i></span></td>
+              <td class="num mono">128</td>
+              <td class="mono">2026-11-18 16:02</td>
+              <td class="act"><a href="#" class="lnk">编辑</a><a href="#" class="lnk">停用</a><a href="#" class="lnk lnk-danger">删除</a></td>
+            </tr>
+            <tr>
+              <td class="mono">DOC</td>
+              <td>单证费</td>
+              <td><span class="switch is-on"><i></i></span></td>
+              <td class="num mono">96</td>
+              <td class="mono">2026-11-18 16:02</td>
+              <td class="act"><a href="#" class="lnk">编辑</a><a href="#" class="lnk">停用</a><a href="#" class="lnk lnk-danger">删除</a></td>
+            </tr>
+            <tr>
+              <td class="mono">THC</td>
+              <td>换单费</td>
+              <td><span class="switch is-on"><i></i></span></td>
+              <td class="num mono">74</td>
+              <td class="mono">2026-11-17 11:20</td>
+              <td class="act"><a href="#" class="lnk">编辑</a><a href="#" class="lnk">停用</a><a href="#" class="lnk lnk-danger">删除</a></td>
+            </tr>
+            <tr>
+              <td class="mono">ENS</td>
+              <td>燃油附加费</td>
+              <td><span class="switch is-off"><i></i></span></td>
+              <td class="num mono">31</td>
+              <td class="mono">2026-11-15 09:44</td>
+              <td class="act"><a href="#" class="lnk">编辑</a><a href="#" class="lnk">启用</a><a href="#" class="lnk lnk-danger">删除</a></td>
+            </tr>
+            <tr>
+              <td class="mono">INS</td>
+              <td>保险费</td>
+              <td><span class="switch is-on"><i></i></span></td>
+              <td class="num mono">12</td>
+              <td class="mono">2026-11-12 14:35</td>
+              <td class="act"><a href="#" class="lnk">编辑</a><a href="#" class="lnk">停用</a><a href="#" class="lnk lnk-danger">删除</a></td>
+            </tr>
+            </tbody>
+          </table>
+        <div class="pager">
+          <span class="pager-info">共 5 项 · 删除前会提示被引用的记录数</span>
+          <div class="pager-ctl"><button class="pg is-off">上一页</button><button class="pg is-on">1</button><button class="pg">下一页</button></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- 用户管理 ---------- -->
+    <section class="view" data-view="users" hidden>
+      <header class="page-head">
+        <div>
+          <h1 class="page-title">用户管理</h1>
+          <p class="page-meta">手机号是唯一标识 · 仅管理员可见</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-primary">新增用户</button>
+        </div>
+      </header>
+
+      <div class="sheet">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th><span class="bi-cn">手机号</span><span class="bi-en">Phone</span></th>
+                <th><span class="bi-cn">用户名称</span><span class="bi-en">Username</span></th>
+                <th><span class="bi-cn">权限</span><span class="bi-en">Authority</span></th>
+                <th><span class="bi-cn">状态</span><span class="bi-en">Status</span></th>
+                <th><span class="bi-cn">创建时间</span><span class="bi-en">Created At</span></th>
+                <th><span class="bi-cn">更新时间</span><span class="bi-en">Updated At</span></th>
+                <th class="act"><span class="bi-cn">操作</span><span class="bi-en">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+            <tr>
+              <td class="mono">13801380000</td>
+              <td>张明</td>
+              <td><span class="role role-admin">管理员</span></td>
+              <td><span class="status status-done"><i class="dot"></i>启用</span></td>
+              <td class="mono">2026-11-06 10:02</td>
+              <td class="mono">2026-11-08 09:31</td>
+              <td class="act"><a href="#" class="lnk">编辑</a><a href="#" class="lnk lnk-mute">停用</a><a href="#" class="lnk lnk-danger">删除</a></td>
+            </tr>
+            <tr>
+              <td class="mono">13902136688</td>
+              <td>李静</td>
+              <td><span class="role role-normal">普通用户</span></td>
+              <td><span class="status status-done"><i class="dot"></i>启用</span></td>
+              <td class="mono">2026-11-06 10:05</td>
+              <td class="mono">2026-11-07 14:38</td>
+              <td class="act"><a href="#" class="lnk">编辑</a><a href="#" class="lnk lnk-mute">停用</a><a href="#" class="lnk lnk-danger">删除</a></td>
+            </tr>
+            <tr>
+              <td class="mono">13761092233</td>
+              <td>王磊</td>
+              <td><span class="role role-normal">普通用户</span></td>
+              <td><span class="status status-done"><i class="dot"></i>启用</span></td>
+              <td class="mono">2026-11-07 14:38</td>
+              <td class="mono">2026-11-09 11:20</td>
+              <td class="act"><a href="#" class="lnk">编辑</a><a href="#" class="lnk lnk-mute">停用</a><a href="#" class="lnk lnk-danger">删除</a></td>
+            </tr>
+            <tr>
+              <td class="mono">13611225599</td>
+              <td>陈晓芸</td>
+              <td><span class="role role-normal">普通用户</span></td>
+              <td><span class="status status-off"><i class="dot"></i>停用</span></td>
+              <td class="mono">2026-11-08 09:20</td>
+              <td class="mono">2026-11-08 09:20</td>
+              <td class="act"><a href="#" class="lnk">编辑</a><a href="#" class="lnk">启用</a><a href="#" class="lnk lnk-danger">删除</a></td>
+            </tr>
+            </tbody>
+          </table>
+        <div class="pager">
+          <span class="pager-info">共 4 人 · 管理员 1 人</span>
+          <div class="pager-ctl"><button class="pg is-off">上一页</button><button class="pg is-on">1</button><button class="pg">下一页</button></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ======================= 新增费用信息 ======================= -->
+<div class="modal" id="modal-charge" hidden>
+  <div class="modal-mask" data-close></div>
+  <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="mc-title">
+    <header class="modal-head">
+      <div>
+        <h2 class="modal-title" id="mc-title">新增费用信息</h2>
+        <p class="modal-sub">所属货运订单 <span class="mono">SH-20261119-0007</span></p>
+      </div>
+      <button class="modal-x" data-close aria-label="关闭">×</button>
+    </header>
+
+    <div class="modal-body">
+      <div class="grp">
+        <p class="grp-title"><span class="bi-cn">费用</span><span class="bi-en">Charge</span></p>
+        <div class="grid">
+          <label class="field span2">
+            <span class="field-label"><span class="bi-cn">描述</span><span class="bi-en">Description</span></span>
+            <input class="input" list="dl-desc" placeholder="选择或直接输入" value="上海港至汉堡港海运费">
+            <datalist id="dl-desc">
+              <option value="上海港至鹿特丹海运费"></option>
+              <option value="目的港换单费"></option>
+              <option value="燃油附加费 FAK"></option>
+            </datalist>
+          </label>
+          <label class="field">
+            <span class="field-label"><span class="bi-cn">费用代码</span><span class="bi-en">Charge Code</span></span>
+            <select class="input"><option>FRT · 海运费</option><option>DOC · 单证费</option><option>THC · 换单费</option><option>ENS · 燃油附加费</option></select>
+          </label>
+          <label class="field">
+            <span class="field-label"><span class="bi-cn">账单类型</span><span class="bi-en">Inv. Type</span></span>
+            <select class="input"><option>FIN</option><option>CUR</option><option>NON-pending</option></select>
+          </label>
+        </div>
+      </div>
+
+      <div class="grp grp-pay">
+        <p class="grp-title"><span class="bi-cn">应付</span><span class="bi-en">Payable</span></p>
+        <div class="grid">
+          <label class="field">
+            <span class="field-label"><span class="bi-cn">应付部门</span><span class="bi-en">Department</span></span>
+            <select class="input"><option>FIS</option><option>FES</option><option>FIA</option><option>FEA</option></select>
+          </label>
+          <label class="field">
+            <span class="field-label"><span class="bi-cn">应付分支机构</span><span class="bi-en">Branch</span></span>
+            <select class="input"><option>SHL</option></select>
+          </label>
+          <label class="field">
+            <span class="field-label"><span class="bi-cn">应付币种</span><span class="bi-en">Cost Currency</span></span>
+            <select class="input"><option>USD</option><option>CNY</option><option>EUR</option><option>HKD</option></select>
+          </label>
+          <label class="field">
+            <span class="field-label"><span class="bi-cn">应付金额</span><span class="bi-en">OS Cost Amt</span></span>
+            <input class="input mono" inputmode="decimal" placeholder="0.00">
+          </label>
+          <label class="field">
+            <span class="field-label"><span class="bi-cn">已结算金额</span><span class="bi-en">Settled Amt</span></span>
+            <input class="input mono" inputmode="decimal" placeholder="0.00">
+          </label>
+          <label class="field">
+            <span class="field-label"><span class="bi-cn">应付税率</span><span class="bi-en">Cost Tax ID</span></span>
+            <select class="input"><option>VAT6</option><option>WHT</option></select>
+          </label>
+          <label class="field">
+            <span class="field-label"><span class="bi-cn">应付对象</span><span class="bi-en">Creditor</span></span>
+            <select class="input"><option>中远海运物流</option><option>MAERSK</option><option>中外运</option></select>
+          </label>
+        </div>
+      </div>
+
+      <div class="grp grp-rec">
+        <p class="grp-title"><span class="bi-cn">应收</span><span class="bi-en">Receivable</span></p>
+        <div class="grid">
+          <label class="field">
+            <span class="field-label"><span class="bi-cn">应收币种</span><span class="bi-en">Sell Currency</span></span>
+            <select class="input"><option>CNY</option><option>USD</option><option>EUR</option><option>HKD</option></select>
+          </label>
+          <label class="field">
+            <span class="field-label"><span class="bi-cn">应收金额</span><span class="bi-en">OS Sell Amt</span></span>
+            <input class="input mono" inputmode="decimal" placeholder="0.00">
+          </label>
+          <label class="field">
+            <span class="field-label"><span class="bi-cn">已结算金额</span><span class="bi-en">Settled Amt</span></span>
+            <input class="input mono" inputmode="decimal" placeholder="0.00">
+          </label>
+          <label class="field">
+            <span class="field-label"><span class="bi-cn">应收对象</span><span class="bi-en">Debtor</span></span>
+            <select class="input"><option>中远海运集运</option><option>招商局能源运输</option></select>
+          </label>
+        </div>
+      </div>
+
+      <p class="note">本地应付金额与本地应收金额由应付币种与汇率换算得出，本期不填写。任务码由所属货运订单带出。</p>
+    </div>
+
+    <footer class="modal-foot">
+      <span class="modal-hint">任务码 <span class="mono">SH-20261119-0007</span> 自动带出</span>
+      <div class="modal-btns">
+        <button class="btn btn-ghost" data-close>取消</button>
+        <button class="btn btn-primary">保存</button>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

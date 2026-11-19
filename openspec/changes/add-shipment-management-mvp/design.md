@@ -1,0 +1,583 @@
+# Design
+
+## Context
+
+本项目当前没有任何源码，`openspec/specs/` 为空，没有既有代码库约束需要兼容——因此本设计可以自由选择技术栈，但必须为「前后端分离」这一硬要求提供可落地的结构。
+
+环境约束与前提：
+
+- 后端语言由需求指定为 **Python**，数据库指定为 **MySQL**；前端框架由需求确认为 **Vue 3 + Element Plus**。
+- 系统**对内使用**：使用者是公司内部员工，没有外部客户自助注册、没有公网流量预期，安全模型是「内部可信网络 + 基础鉴权 + 管理员/普通用户两级权限」。
+- 目标用户是**非技术同事**录入，因此表单可用性与口径一致性比系统灵活性更重要。
+- 字段集来自**上游货运系统的既有表结构**（`Shipment Num.`、`Job Num.`、`Charge Code`、`OS Cost Amt`…）。字段名保留上游写法，即便 `Cost Currency`/`Sell Currency` 这类命名在其他系统里含义不同——保持一致是为了日后能与上游直接对账或同步。
+- 九类分类字段（费用代码、描述、部门、分支机构、币种、税率、应付对象、应收对象、账单类型）既要在**页面上呈现为下拉**，又需要**可维护**（增删改查、启停用），因此它们各自建表；费用信息里存的仍是**选项内容本身**。
+- 订单的唯一标识 `shipment_num` 是**上游采购系统已有的单号**，由内部员工抄录录入，本系统不生成。
+- 需求已明确「精简 MVP」：不做审批流、汇率折算、库存联动；也不做跨订单的明细对账页与收支汇总页。
+
+参考 `proposal.md` 的动机说明、`specs/` 下的六个能力规格（`auth`、`user-management`、`shipment-management`、`charge-info`、`amount-rules`、`option-lists`）对行为的约束。
+
+## Goals / Non-Goals
+
+**Goals:**
+
+- 两端彻底解耦：后端只产出 JSON API，前端仅通过 HTTP 契约访问。
+- 口径唯一：应付侧与应收侧各自独立，同一套字段定义在录入、查询、汇总三处复用。
+- 录入顺畅：一条费用信息一屏填完，分类字段全部下拉选，不要求用户记代码。
+- 选项可自维护：管理员在页面上就能增删改查与启停用选项，不需要改代码或发版。
+- 权限边界清晰：谁能维护选项、谁能管理账号，一眼可见、不可越权。
+- 审计可追：每条记录都能回答「谁在什么时候动过它」。
+- 可演进：schema 由迁移工具管理；前后端类型由同一份 OpenAPI 契约生成。
+
+**Non-Goals:**
+
+- 高并发与水平扩展：按内部几十人规模设计，不引入缓存层、消息队列、读写分离。
+- 实时性：不做 WebSocket 推送、不做多用户协同编辑。
+- 通用化：不为「未来可能出现的其它业务类型」预留可配置引擎。
+- 细粒度 RBAC：只有管理员/普通用户两级，不做角色组合与自定义权限。
+- 汇率与本地金额：本期不算，留字段位。
+- 汇率自动同步：汇率由人工维护，不接入外部汇率 API。
+- 科目化：不做收支分类字典，明细分类用自由文本描述。
+
+## Decisions
+
+### D1. 后端框架：FastAPI + Pydantic v2
+
+**选择**：FastAPI。
+
+**理由**：前后端分离场景下后端的职责是「产出契约」，FastAPI 的类型注解直接生成 OpenAPI 文档，前端据此生成 TypeScript 类型，从根上消除手写接口类型的漂移。Pydantic v2 的字段校验天然对应 spec 中的校验要求（金额两位小数、汇率精度与正数、分类字段取值存在且启用、手机号格式、两侧必填），这些规则写在一处、由所有入口复用。FastAPI 的依赖注入也天然适合实现「取当前用户 → 判权限」的统一鉴权链。
+
+**备选方案**：
+- *Django REST Framework*：自带 ORM、admin 后台与用户体系，看似省事，但视图层与模板/表单假设面向全栈页面，做纯 API 偏重；admin 后台也无法承载明细级筛选场景。
+- *Flask*：无内置校验与类型契约，OpenAPI 需额外装配。
+
+### D2. ORM 与迁移：SQLAlchemy 2.0（typed `Mapped[]`）+ Alembic
+
+**选择**：SQLAlchemy 2.0 ORM + Alembic。
+
+**理由**：2.0 的 typed 声明风格让「同一组筛选条件同时用于列表查询和汇总聚合」可以用同一套 `select()` 表达式对象描述；按币种分组的小计也用表达式构造，避免拼接 SQL 字符串带来的注入与维护成本。Alembic 与 SQLAlchemy 同源，迁移可版本化、可降级。
+
+**备选方案**：
+- *手写 SQL + mysql-connector*：无迁移工具，schema 演进全靠手工脚本，MVP 阶段就会失控。
+- *SQLModel*：与 FastAPI 契合度高，但复杂聚合查询时其 Pydantic/SQLAlchemy 双面模型反而增加心智负担。
+
+### D3. 数据库：MySQL 8 / InnoDB / utf8mb4
+
+**选择**：MySQL 8，字符集 `utf8mb4`，存储引擎 InnoDB。
+
+**理由**：需求指定 MySQL。8.0 提供 CTE、窗口函数与 `JSON_ARRAYAGG`——后者是本设计按币种分组返回小计的关键（见 D14）。`utf8mb4` 支持完整 Unicode（备注与字典项名称录入中文、emoji 是常见场景）。InnoDB 提供事务与外键约束，本设计的外键（操作人 → `users.phone`）依赖它。
+
+### D4. 金额与汇率精度
+
+**选择**：应付金额与应收金额用 `DECIMAL(14,2)`，后端全程 `decimal.Decimal`，API 中以字符串输出。汇率列用 `DECIMAL(18,8)`。
+
+**理由**：二进制浮点无法精确表示 0.1，用 FLOAT/DOUBLE 存金额会在累加小计时产生分位误差——对「记录收入」的系统这是不可接受的。Pydantic 层用 `condecimal(max_digits=14, decimal_places=2)` 约束，DB 层用对应 `Numeric`。JSON 以字符串传输可避免 JavaScript `number` 在大额场景丢失精度。
+
+汇率取 8 位小数：足以表达 7.12345678 这类报价汇率；再多位数在业务上没有意义，位数过少则倒数报价币种的换算会损失精度。本期虽不计算本地金额，但列与精度先定好，将来启用时不必改表。
+
+### D5. 支付状态在查询层推导，不落库
+
+**选择**：不设 `payment_status` 列。费用信息的支付状态由 `settled_amount` 与 `amount` 的比较在 SQL 层用 `case()` 表达式推导（0→未支付、0<已结算<金额→部分支付、已结算=金额→已支付），列表、详情、统计、筛选四处共用同一个表达式对象。
+
+**理由**：落库就必然存在漂移风险——改了金额忘了改状态，且这类错误在财务数据里很难被发现。推导式让「状态与金额打架」这个 bug 类别在结构上不存在。
+
+**支付状态在明细自身币种内比较**：已结算金额与金额同为原币，比较时不需要汇率。这让支付状态在汇率变动后依然稳定。
+
+### D6. 选项建表，业务字段存内容字符串
+
+**选择**：九类选项各自独立成表，表结构相同（唯一代码、名称、启用状态、`status`、审计三件套）。费用信息的分类字段**不设外键**，直接以 VARCHAR 存所选内容的字符串（如 `department` 存 `"FIS"`、`cost_currency` 存 `"USD"`）。选项表是页面下拉的数据来源，也是后端校验取值合法性的依据。
+
+**理由**：两件事要同时成立——选项需要被**维护**（增删改查、启停用），而费用信息里存的是**内容本身**。
+
+业务字段存字符串而非外键 id，是因为字段值就是上游表里那个内容（`FIS`、`SHL`、`USD`）——存字符串能与上游直接对齐，导出时不必再翻译回 code；代价是失去数据库层面的参照完整性，这由后端在保存时对照选项表校验来补。
+
+**选项的 code 一经创建不可修改**（只允许修改名称）。这是存字符串方案的关键约束：若 code 改名，费用信息里存的旧 code 就对不上任何选项项了。锁死 code、改名不影响引用，历史数据因此永远可读可保存。
+
+### D7. 选项接口分「管理列表」与「候选列表」两种用途
+
+**选择**：每类选项提供两个读取接口——管理列表（可包含已停用与已删除的项，供维护界面使用）与候选列表（仅启用且未删除，供录入下拉使用）。另提供一个一次取回九类候选列表的接口供表单使用。
+
+**理由**：两种用途的可见范围不同。维护界面需要看到停用项才能把它们重新启用，也需要看到已删除项才能追溯；录入下拉只该给出当前可用的。混成一个接口，前端就得自己过滤，反而容易漏。
+
+**表单一次取回九类候选**：费用信息表单一打开就需要全部九组候选，九个请求等于九次往返；一次返回前端直接缓存。
+
+**「哪些字段允许直接输入」由后端下发**：描述是唯一允许直接输入的字段，这条规则随候选列表一起返回，前端不必把「描述可新建」硬编码在自己的组件里——规则与数据同源，避免两边不同步。
+
+### D8. 货运订单号
+
+**选择**：`shipment_num` 由内部员工手工录入，全局唯一，比较时去除首尾空格且不区分大小写，不限制格式（仅长度上限）。数据库建唯一索引作为并发下的最终保证。
+
+**理由**：货运订单号在上游系统里已经存在，系统另造一个编号只会让人手里握着两个号，且无法表达「这笔业务对应上游哪张单」——后者恰是这个系统存在的意义。
+
+**大小写不敏感的必然性**：MySQL 的 `utf8mb4` 默认排序规则（`utf8mb4_0900_ai_ci`）大小写不敏感，唯一索引天然把 `SH-001` 与 `sh-001` 判为重复。应用层预检必须使用相同语义（`LOWER(TRIM(...))`），否则用户会遇到「前端说没重复、提交却报重复」。
+
+### D9. 软删除统一用 status 标记（0 正常 / 1 已删除）
+
+**选择**：所有数据表——`users`、`shipments`、`charge_info` 与九张选项表——都带一个 `status` 列（`TINYINT NOT NULL DEFAULT 0`），`0` 表示正常、`1` 表示已删除。删除操作把该行的 `status` 置为 1，**不设 `deleted_at` / `deleted_by` 两列**。查询助手统一注入 `status = 0` 过滤。
+
+**理由**：一套字段名贯穿全部 12 张表，查询助手、序列化与列表展示都能共用同一套逻辑，不必为「软删除」和「业务上停用」维护两套字段（`is_active` 与 `status` 已经够用：前者是业务上的停用，后者是数据层面的删除）。
+
+**`status` 与业务状态分开**：货运订单另有一个 `lifecycle` 列存业务状态（草稿/已确认/已完成/已取消），见 D19。两者语义不同不可合并——`status` 表达「这条记录还在不在」，`lifecycle` 表达「这单走到哪一步」。
+
+**「货运订单删除后其费用信息一并不可见」不做级联写入**，而是由查询的 JOIN 条件保证——删除货运订单是单行写操作，将来若引入恢复能力，明细会自然回到可见状态。
+
+**审计三件套随之简化**：删除动作不额外留删除人删除时间——执行删除的人写进 `operator`，删除时刻写进 `updated_at`。因此「谁在什么时候删的」与「谁在什么时候改的」在数据上是同一组字段，语义统一。
+
+### D10. 本地金额字段预留但不计算
+
+**选择**：`charge_info` 保留 `local_cost_amt` 与 `local_sell_amt` 两列，类型与原币金额一致，**本期不计算、不填充、不校验**，接口返回时恒为 `null`。客户端若在请求中携带这两个值，服务端忽略。
+
+**理由**：上游表结构里有这两个字段，本地金额的概念将来一定会有（它对应本公司的记账币种）。字段位现在就留着，将来要启用时不必改表、不必回填历史。
+
+**为什么本期不算**：本地金额需要汇率表与基准币种，涉及汇率快照、折算口径、汇总口径的一整套设计；需求明确本期不处理。先把录入与对账主链路跑通。
+
+### D11. 应付与应收两侧独立，不存在净额
+
+**选择**：每条费用信息同时承载应付侧与应收侧，两侧币种各自独立（可以不同），金额之间不换算。系统**不提供跨币种的净额**，汇总结果按币种分组给出。
+
+**理由**：应付币种与应收币种可以不同——一笔 USD 成本对应 CNY 收入是常态。此时「应收 - 应付」没有意义，硬算出来是个无意义的数字。净额概念在多币种下不成立，因此整体移除。
+
+### D12. 描述是唯一允许直接输入的字段
+
+**选择**：九个分类字段中，八个是封闭集合——取值必须存在于对应选项表中且该项未被删除；描述是唯一的例外，取值只需非空。
+
+**理由**：需求里逐条标注了哪些是「选项列表」，只有描述额外写了「但也支持直接输入」。这个差异应当如实反映在行为上：描述允许新值，其余八个不允许。描述仍会出现在候选下拉里（选项表非空时），只是允许用户绕过它输入新值。
+
+**描述选项表的作用**：它是一个建议词库，让常用描述能被快速选中，但不约束取值。描述选项表为空时，描述字段退化为纯文本输入，功能不受影响。
+
+**停用取值在编辑时的宽容处理**：创建记录时取值必须启用；编辑记录时，若某字段的取值未发生变化，允许保留它已停用的状态（历史记录能继续编辑），只有取值发生变化时才要求新值启用。
+
+### D13. 分类字段的校验实现
+
+**选择**：九类选项的校验实现为一张**字段标识 → 选项表**的映射表，后端按映射查对应表。
+
+**理由**：九个字段对应九张表，映射写在一处即可。若每处校验各写各的，很容易漏掉某一个字段或查错表——而这类错误的表现是「某字段的取值校验查了另一张表」，极难发现。
+
+**校验需要区分三种情形**：值不存在（拒绝）、值已停用（新建拒绝 / 编辑未变通过 / 编辑变更拒绝）、值已删除（拒绝）。三者错误提示不同，用户才知道该怎么办。
+
+### D14. 按币种分组的小计怎么返回
+
+**选择**：用 MySQL 8 的 `JSON_ARRAYAGG` 把分组结果收成 JSON 数组，内嵌在货运订单列表的每一行里。
+
+**理由**：一条货运订单可能同时有 USD 与 CNY 的应付，列表上需要「USD 1,200；EUR 300」这样的展示。若用两个派生表分别 JOIN，会让同一货运订单在结果集里出现多行，分页与计数都失真。`JSON_ARRAYAGG` 把它收成一行内的一个数组，既不破坏分页，也不需要在应用层二次查询回填。
+
+```sql
+LEFT JOIN (
+  SELECT shipment_id,
+         JSON_ARRAYAGG(JSON_OBJECT('currency', cost_currency, 'amount', amt)) AS cost_totals
+  FROM (
+    SELECT shipment_id, cost_currency, SUM(os_cost_amt) AS amt
+    FROM charge_info WHERE status = 0
+    GROUP BY shipment_id, cost_currency
+  ) c
+  GROUP BY shipment_id
+) a ON a.shipment_id = s.id
+```
+
+**备选方案**：
+- *两个派生表分别 JOIN*——行数膨胀，分页与总数都要额外去重。
+- *应用层二次查询回填*——N+1 查询。
+- *落库冗余小计列*——需要维护一致性，改明细就要重算，又把漂移风险引回来。
+
+### D15. 金额区间必须指定币种
+
+**选择**：金额区间筛选的入参必须同时带币种。未指定币种时，系统不应用金额区间条件（而不是报错，也不是默认某个币种）。
+
+**理由**：跨币种没有可比的大小关系。给用户一个「金额 > 10000」的输入框却不说单位，是把一个无意义的问题抛给用户。指定币种后区间才有意义。
+
+**实现**：货运订单列表的区间筛选作用于**该货运订单在指定币种下的合计**，用带 `GROUP BY ... HAVING` 的 `EXISTS` 子查询实现，避免与外层 JOIN 产生行数膨胀：
+
+```sql
+EXISTS (
+  SELECT 1 FROM charge_info c
+  WHERE c.shipment_id = s.id AND c.status = 0 AND c.cost_currency = :ccy
+  GROUP BY c.shipment_id
+  HAVING SUM(c.os_cost_amt) BETWEEN :min AND :max
+)
+```
+
+### D16. 任务码由所属货运订单自动带出
+
+**选择**：`job_num` 列存在于每条费用信息上，其值等于所属货运订单的 `shipment_num`。创建与编辑时由服务端从父记录带出，客户端传入的值一律忽略。
+
+**理由**：上游表结构里每条费用信息都带任务码，导出时需要这一列；系统内它与所属货运订单号同义。既然语义相同，就不该让用户能填出一个与父记录不一致的值——那会造出「这笔费用属于任务 A，却挂在任务 B 的货运订单下」的数据。
+
+**为什么不干脆不存这一列**：上游结构对齐是刻意目标。存一列冗余值，写入时由服务端保证一致，成本几乎为零，收益是导出与对账时结构完全一致。
+
+### D17. 用户标识与登录凭据：手机号即凭证
+
+**选择**：`users` 表以**手机号**作为唯一业务标识（`phone` 唯一约束），`username` 为展示用的用户名称，登录凭据为**手机号**，无密码无验证码。`users` 表不设 `password_hash` 列，也不提供重置密码一类操作——用户没有密码。
+
+**理由**：手机号在国内是天然且唯一的个人标识，内部员工人手一个，没有重名的困扰；而「用户名称」是姓名或昵称，可以重名也可以改。若用用户名做登录名，「用户名」与「用户名称」两个概念就纠缠在一起，且重名时登录名不唯一。
+
+**手机号即凭证，无密码无验证码**：登录只需提交手机号，系统据此查找用户并判断账号是否启用，签发令牌。
+
+**为什么不要密码**：本系统面向内部可信网络，用户由管理员开通、离职即停用。引入密码会带来三件成本——密码分发与首次改密的重置流程、忘记密码的自助通道、以及忘记后仍要保留的哈希列与重置接口。而这些场景在「一个几十人的内部单据系统」里几乎不发生：同事之间手机号互相知道，出问题时直接找管理员改。
+
+**代价（必须明确记录）**：手机号本身成了凭证，而手机号在名片、微信、发票、快递面单上都很常见。知道某个 admin 的手机号，就能以该 admin 身份登录并修改选项与账号。本设计把这条风险写进 Risks，并给出缓解方向。
+
+**操作人一律记手机号**：所有数据表的**操作人**字段存 `users.phone`（VARCHAR，外键指向 `users.phone`），不存内部自增 id。理由：手机号就是用户在系统里的唯一标识，审计记录里直接看得懂是谁操作，不必再回查一次 id 对应的人。`users.phone` 上的唯一索引同时充当外键的目标。
+
+**换号的连带影响**：手机号会变（换号、换机）。若用户改了手机号，历史记录里的操作人引用会指向一个已不存在的值，因此该外键须带 `ON UPDATE CASCADE`——用户改号时，历史审计记录里的操作人同步跟着改，始终指向同一个人。这样「操作人」列在任何时候读出来都是当前可用的手机号，不会出现悬空引用。
+
+**`users` 表自身也有操作人**：可为空——首个管理员由命令行创建，那一刻没有「操作人」。
+
+### D18. 权限模型：两级，实时判定
+
+**选择**：每个用户有 `authority` 字段，取值 `admin` 或 `normal`。权限边界如下：
+
+| 操作 | admin | normal |
+|---|---|---|
+| 九类选项的**写**（新增/编辑/删除/启停用） | ✅ | ❌ 403 |
+| 九类选项的**读**（候选列表） | ✅ | ✅ |
+| 用户管理（列出/创建/修改/启停用/删除） | ✅ | ❌ 403 |
+| 货运订单与费用信息的增删改查 | ✅ | ✅ |
+
+**权限实时判定，不固化进令牌**：每次受保护请求都会查一次用户记录——这本来就为了判断 `is_active` 而必须做，顺带就拿到了 `authority`。因此管理员把某人的权限改了、或把某人停用了，那个人下一次请求就按新状态判定，不存在「旧令牌还在生效」的窗口。这是零额外成本的正确性。
+
+**为什么不做细粒度 RBAC**：需求只要求两级。多角色、权限组合、自定义角色会带来权限矩阵与界面复杂度的指数上升，而当前只有两个明确的写操作域（选项维护、用户管理）需要区分。
+
+**为什么不能停用自己**：否则最后一个管理员可能把自己停用，系统再也没人能维护选项与用户，只能改数据库恢复。admin-only 的自停用拦截是这类系统必备的保险。
+
+### D19. 货运订单状态机与事务
+
+**选择**：货运订单的业务状态存 `lifecycle` 列（`VARCHAR(20)`，取值 `draft` / `confirmed` / `completed` / `cancelled`），允许的流转仅四种：草稿→已确认、草稿→已取消、已确认→已完成、已确认→已取消。其余一律 409。流转在单个数据库事务内完成，先 `SELECT ... FOR UPDATE` 锁定订单行，再校验流转是否合法。
+
+**理由**：两个用户同时对同一订单点「确认」和「取消」时，必须保证只有一个动作生效、且不会出现状态与明细被交叉覆盖。行锁在单机 MySQL 下开销极低。
+
+**流转不引入审批**：流转由单个内部用户一次动作完成，不产生审批人、审批记录或审批链——本系统不做审批。
+
+**`completed` 与 `cancelled` 是终态**：不可再流转，但其下的费用信息**仍可编辑**——录入错误必须能修正，编辑不改变订单的业务状态。
+
+**与 `status` 的分工**：`lifecycle` 表达业务进度，`status` 表达记录是否被删除（D9）。两个字段名刻意不同，避免把「这单完成了」与「这条记录删了」混为一谈。
+
+### D20. 认证：短时效 JWT
+
+**选择**：登录成功签发 JWT（默认有效期 2 小时），每个受保护请求除校验签名与过期时间外，还需查一次用户是否存在且处于启用状态。
+
+**理由**：纯无状态 JWT 有个缺口——账号被停用后其已签发令牌在过期前依然可用，与 spec 的「停用即时失效」冲突。每次请求一次按主键命中的轻量查询换取即时生效，可由进程内短 TTL 缓存承接。
+
+**无密码**：系统不存储任何密码或凭据派生值，登录只比对手机号（见 D17）。
+
+**首个管理员**：通过 CLI 脚本 `python -m app.cli create-admin` 创建，参数为手机号与用户名称。命令行工具直接授予 admin 是安全的——能执行它的人已经拥有服务器访问权。不开放任何自助注册接口。
+
+### D21. API 契约：REST + `/api/v1` 前缀 + OpenAPI 驱动前端类型
+
+**选择**：所有接口挂在 `/api/v1` 下；前端通过 `openapi-typescript` 从后端产出的 OpenAPI 生成 TypeScript 类型。
+
+**理由**：契约单一来源。前端不手写请求/响应类型，字段改名或新增字段时重新生成即可，类型不一致会在编译期暴露而非运行时。
+
+**约定**：
+
+- 列表响应统一为 `{ items, total, page, page_size }`。
+- 错误响应统一为 `{ code, message, details? }`，HTTP 状态码语义化：400 参数错误 / **401 未认证** / **403 无权限** / 404 不存在 / 409 冲突（唯一性、非法状态流转）/ 422 校验失败。
+- **401 与 403 必须分开**：401 = 没登录或令牌失效（前端应跳登录页）；403 = 登录了但权限不够（前端应提示无权限，不该跳登录页）。把两者混为一谈会让权限不足的用户被莫名踢出登录。
+- 金额以字符串传输；分类字段以内容字符串传输。
+- 选项接口的 `{kind}` 路径参数取值限定为九类固定值，不接受任意表名——避免路径参数被用于探测其它表。
+
+**路由顺序注意**：`GET /api/v1/options/candidates`（一次取回九类候选）必须注册在 `GET /api/v1/options/{kind}` 之前，否则 `candidates` 会被当成一个 kind 匹配掉。
+
+### D22. 前端：Vite + Vue 3 `<script setup>` + TS + Pinia + Element Plus + Axios
+
+**选择**：如需求指定。Element Plus 的 `el-select`（支持远程搜索与新建）、`el-table`、`el-form` rules、`el-switch`、`el-radio-group`、`el-tag` 直接覆盖本系统的交互形态。
+
+**备选方案**：*React + Ant Design* 组件能力等价，若团队已有 React 积累可整体切换；*自研组件库*——MVP 阶段成本不划算。
+
+### D23. 前端数据层：统一 Axios 封装
+
+**选择**：`api/client.ts` 统一注入 `Authorization` 头、拦截 401 跳转登录、拦截 403 提示无权限、统一错误提示。Pinia 保存用户信息、选项候选缓存与当前筛选条件，业务数据由页面组件持有。不引入 TanStack Query 一类的缓存库——MVP 阶段收益不足以抵消依赖成本。
+
+**选项候选的缓存**：候选列表变化极少，前端在应用启动时拉取一次并缓存在 Pinia，之后所有表单共用。
+
+### D24. 开发环境与跨域
+
+**选择**：docker-compose 提供 MySQL 8 本地实例；开发期前端通过 Vite dev server 的 `proxy` 转发 `/api` 到后端规避跨域；生产部署时后端配置 CORS 白名单（允许前端域名），前后端各自独立部署。
+
+**理由**：「前后端分离」在开发期最常见的失败点就是跨域。用 dev proxy 让开发体验与生产一致（同源路径），只在生产需要跨域时才引入 CORS 配置，减少配置分叉。
+
+### D25. 目录结构
+
+```
+poManagementSystem/
+├── backend/
+│   ├── app/
+│   │   ├── main.py              # FastAPI 应用装配、路由注册、CORS
+│   │   ├── cli.py               # create-admin、seed-options 等命令行入口
+│   │   ├── core/
+│   │   │   ├── config.py        # pydantic-settings，读 .env
+│   │   │   ├── security.py      # JWT 签发与校验（无密码哈希）
+│   │   │   └── deps.py          # 认证依赖、当前用户依赖、require_admin
+│   │   ├── db/
+│   │   │   ├── base.py          # DeclarativeBase
+│   │   │   └── session.py        # engine / sessionmaker / get_db
+│   │   ├── models/
+│   │   │   ├── user.py
+│   │   │   ├── shipment.py
+│   │   │   ├── charge_info.py
+│   │   │   └── options.py        # 九张选项表模型
+│   │   ├── schemas/
+│   │   │   ├── auth.py
+│   │   │   ├── user.py
+│   │   │   ├── shipment.py
+│   │   │   ├── charge_info.py
+│   │   │   ├── option.py
+│   │   │   └── common.py        # 分页响应、错误响应
+│   │   ├── repositories/
+│   │   │   ├── user.py
+│   │   │   ├── shipment.py       # 查询助手：status 过滤 + 筛选条件 + 按币种小计
+│   │   │   ├── charge_info.py   # 查询助手：status 过滤 + 所属订单可见性 + 筛选条件
+│   │   │   └── option.py        # 九类选项共用的查询助手 + 字段映射
+│   │   ├── services/
+│   │   │   ├── auth_service.py
+│   │   │   ├── user_service.py
+│   │   │   ├── shipment_service.py # 状态机流转、货运订单号唯一性
+│   │   │   ├── charge_info_service.py
+│   │   │   ├── option_service.py
+│   │   │   └── summary_service.py # 按币种聚合
+│   │   └── api/v1/
+│   │       ├── auth.py
+│   │       ├── users.py          # 用户管理（全部 admin-only）
+│   │       ├── shipments.py
+│   │       ├── charge_infos.py
+│   │       ├── options.py        # 九类选项共用一套路由（按 kind 分发）
+│   │       ├── summary.py
+│   │       └── meta.py
+│   ├── alembic/
+│   ├── alembic.ini
+│   ├── tests/
+│   ├── requirements.txt
+│   └── .env.example
+├── frontend/
+│   ├── src/
+│   │   ├── api/                 # client.ts / auth.ts / users.ts / shipments.ts / chargeInfos.ts / options.ts
+│   │   ├── stores/              # auth.ts / options.ts / filters.ts
+│   │   ├── router/              # 路由与登录守卫、admin 守卫
+│   │   ├── views/
+│   │   │   ├── LoginView.vue
+│   │   │   ├── ShipmentListView.vue
+│   │   │   ├── ShipmentDetailView.vue
+│   │   │   ├── ShipmentFormView.vue
+│   │   │   ├── UserManagementView.vue  # 用户管理（admin-only）
+│   │   │   └── OptionListView.vue      # 选项维护（admin-only）
+│   │   ├── components/
+│   │   │   ├── ShipmentFilterBar.vue
+│   │   │   ├── ChargeInfoTable.vue
+│   │   │   ├── ChargeInfoDialog.vue
+│   │   │   ├── OptionSelect.vue         # 分类字段下拉（可否新建由接口标记决定）
+│   │   │   ├── BilingualLabel.vue       # 双语标签
+│   │   │   └── CurrencyTotalsCell.vue
+│   │   ├── locales/fieldNames.ts        # 字段名映射表（中文 → 上游英文名）
+│   │   ├── types/               # 由 OpenAPI 生成的类型
+│   │   └── utils/               # 金额格式化
+│   ├── package.json
+│   └── vite.config.ts
+├── docker-compose.yml           # 本地 MySQL 8
+└── openspec/
+```
+
+**理由**：后端按「传输层（api）— 业务层（services）— 数据层（repositories/models）」分层。九类选项的模型各自独立（表独立、类型安全），但 service 与 repository 共享同一套泛型实现——`option_service.py` 与 `option.py` 通过表名/模型参数化调用，九份近乎相同的 CRUD 只写一遍。
+
+**权限依赖放在 `core/deps.py`**：一个 `get_current_user` 依赖产出当前用户对象，一个 `require_admin` 依赖在其上再判权限。路由只声明要用哪个依赖，不在 handler 里写 if。
+
+### D26. 数据模型
+
+**统一的审计与状态字段**：每一张表——`users`、`shipments`、`charge_info` 与九张选项表——都带同样这四个字段：
+
+| 字段 | 类型 | 含义 |
+|---|---|---|
+| `status` | TINYINT | 0 正常 / 1 已删除 |
+| `operator` | VARCHAR(20) | 操作人手机号；指向 `users.phone` |
+| `created_at` | DATETIME | 创建时间 |
+| `updated_at` | DATETIME | 更新时间（更新或删除的时刻） |
+
+字段名与类型在所有表上完全一致，因此任何一张表都能用同一套查询助手、同一套序列化逻辑、同一套列表展示——九张选项表因此不必各自定义一遍映射。
+
+**为什么操作人存手机号而不是内部 id**：手机号就是用户在系统里的唯一标识，审计记录里直接看得懂是谁操作的。存数字 id 的话，看到「由 1042 创建」还得再查一次表才知道是谁；存手机号则是「由 13801380000 创建」。代价是手机号可变，因此该外键须带 `ON UPDATE CASCADE`（见 D17）。
+
+**`users`**
+
+| 列 | 类型 | 约束 | 说明 |
+|---|---|---|---|
+| id | BIGINT | PK, AUTO_INCREMENT | 内部主键 |
+| phone | VARCHAR(20) | NOT NULL, UNIQUE | 手机号，唯一业务标识与登录名 |
+| username | VARCHAR(64) | NOT NULL | 用户名称（展示用，可重名） |
+| authority | VARCHAR(10) | NOT NULL, DEFAULT 'normal' | `admin` / `normal` |
+| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | 停用后登录与令牌均失效 |
+| status | TINYINT | NOT NULL, DEFAULT 0 | 0 正常 / 1 已删除 |
+| operator | VARCHAR(20) | FK → users.phone, NULL | 操作人手机号；首个管理员由 CLI 创建，无操作人 |
+| created_at / updated_at | DATETIME | NOT NULL | |
+
+**`shipments`**（货运订单）
+
+| 列 | 类型 | 约束 | 说明 |
+|---|---|---|---|
+| id | BIGINT | PK, AUTO_INCREMENT | |
+| shipment_num | VARCHAR(64) | NOT NULL, UNIQUE | 货运订单号，内部员工录入 |
+| lifecycle | VARCHAR(20) | NOT NULL, DEFAULT 'draft' | 业务状态：`draft`/`confirmed`/`completed`/`cancelled` |
+| status | TINYINT | NOT NULL, DEFAULT 0 | 0 正常 / 1 已删除 |
+| operator | VARCHAR(20) | FK → users.phone, NOT NULL | 操作人手机号 |
+| created_at / updated_at | DATETIME | NOT NULL | |
+
+**`charge_info`**（费用信息）
+
+| 列 | 类型 | 约束 | 说明 |
+|---|---|---|---|
+| id | BIGINT | PK, AUTO_INCREMENT | |
+| shipment_id | BIGINT | NOT NULL, FK → shipments.id | 所属货运订单 |
+| job_num | VARCHAR(64) | NOT NULL | 任务码，由所属货运订单的 shipment_num 带出 |
+| charge_code | VARCHAR(64) | NOT NULL | 费用代码，存选项内容 |
+| description | VARCHAR(200) | NOT NULL | 描述，存选项内容，可直接输入 |
+| department | VARCHAR(64) | NOT NULL | 应付部门，存选项内容 |
+| branch | VARCHAR(64) | NOT NULL | 应付分支机构，存选项内容 |
+| cost_currency | VARCHAR(8) | NOT NULL | 应付币种，存选项内容 |
+| os_cost_amt | DECIMAL(14,2) | NOT NULL | 应付金额 |
+| local_cost_amt | DECIMAL(14,2) | NULL | 本地应付金额，**本期不计算** |
+| cost_tax_id | VARCHAR(64) | NOT NULL | 应付税率，存选项内容 |
+| creditor | VARCHAR(200) | NOT NULL | 应付对象，存选项内容 |
+| sell_currency | VARCHAR(8) NOT NULL | 应收币种，存选项内容 |
+| os_sell_amt | DECIMAL(14,2) | NOT NULL | 应收金额 |
+| local_sell_amt | DECIMAL(14,2) | NULL | 本地应收金额，**本期不计算** |
+| debtor | VARCHAR(200) | NOT NULL | 应收对象，存选项内容 |
+| inv_type | VARCHAR(64) | NOT NULL | 账单类型，存选项内容 |
+| settled_amount | DECIMAL(14,2) | NOT NULL, DEFAULT 0 | 已结算金额（收入=已收，支出=已付），同为原币 |
+| status | TINYINT | NOT NULL, DEFAULT 0 | 0 正常 / 1 已删除 |
+| operator | VARCHAR(20) | FK → users.phone, NOT NULL | 操作人手机号 |
+| created_at / updated_at | DATETIME | NOT NULL | |
+
+**九张选项表**（结构相同，表名各不相同）
+
+`charge_codes`、`descriptions`、`departments`、`branches`、`currencies`、`cost_tax_ids`、`creditors`、`debtors`、`inv_types`
+
+| 列 | 类型 | 约束 | 说明 |
+|---|---|---|---|
+| id | BIGINT | PK, AUTO_INCREMENT | |
+| code | VARCHAR(64) | NOT NULL, UNIQUE | 唯一代码，**创建后不可修改** |
+| name | VARCHAR(200) | NULL | 名称，省略时等于 code |
+| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | 停用后不出现在候选列表 |
+| status | TINYINT | NOT NULL, DEFAULT 0 | 0 正常 / 1 已删除 |
+| operator | VARCHAR(20) | FK → users.phone, NOT NULL | 操作人手机号 |
+| created_at / updated_at | DATETIME | NOT NULL | |
+
+**索引**：
+- `users`：`uk_users_phone(phone)` 唯一；`idx_users_authority(authority)`；`idx_users_status(status)`。
+- `shipments`：`uk_shipments_shipment_num(shipment_num)` 唯一；`idx_shipments_lifecycle(lifecycle)`；`idx_shipments_status(status)`；`idx_shipments_created_at(created_at)`。
+- `charge_info`：`idx_ci_shipment_id(shipment_id)`；`idx_ci_cost_currency(cost_currency)`；`idx_ci_sell_currency(sell_currency)`；`idx_ci_department(department)`；`idx_ci_branch(branch)`；`idx_ci_inv_type(inv_type)`；`idx_ci_status(status)`；`idx_ci_created_at(created_at)`。
+- 每张选项表：`uk_{table}_code(code)` 唯一；`idx_{table}_status(status)`；`idx_{table}_active(is_active)`。
+
+**约束**：MySQL 8.0.16+ 支持真正生效的 CHECK 约束，用于 `charge_info.os_cost_amt >= 0`、`charge_info.settled_amount >= 0`、`settled_amount <= os_cost_amt`、`users.authority IN ('admin','normal')`，以及所有表的 `status IN (0,1)`。应用层同时校验（给出可读错误信息），数据库约束作为最后防线。
+
+**没有指向选项表的外键**：`charge_info` 的分类字段存内容字符串而非 id，因此不存在外键；取值合法性由应用层对照选项表校验（D13）。
+
+### D27. 接口清单
+
+| 方法 | 路径 | 权限 | 说明 |
+|---|---|---|---|
+| POST | `/api/v1/auth/login` | 公开 | 手机号登录（无密码） |
+| GET | `/api/v1/auth/me` | 登录 | 当前登录用户（含 authority） |
+| GET | `/api/v1/users` | **admin** | 用户列表（按关键字、权限级别过滤） |
+| POST | `/api/v1/users` | **admin** | 创建用户 |
+| PATCH | `/api/v1/users/{id}` | **admin** | 修改手机号、用户名称、权限级别 |
+| PATCH | `/api/v1/users/{id}/status` | **admin** | 启用/停用（不可停用自己） |
+| DELETE | `/api/v1/users/{id}` | **admin** | 软删除用户（status → 1） |
+| GET | `/api/v1/options/candidates` | 登录 | 一次取回九类候选 |
+| GET | `/api/v1/options/{kind}` | **admin** | 管理列表（含停用与已删除） |
+| GET | `/api/v1/options/{kind}/options` | 登录 | 候选列表 |
+| POST | `/api/v1/options/{kind}` | **admin** | 新增选项 |
+| PATCH | `/api/v1/options/{kind}/{id}` | **admin** | 编辑选项（code 不可改） |
+| PATCH | `/api/v1/options/{kind}/{id}/status` | **admin** | 启用/停用选项 |
+| DELETE | `/api/v1/options/{kind}/{id}` | **admin** | 软删除选项（返回引用数量） |
+| GET | `/api/v1/shipments` | 登录 | 货运订单列表：分页 + 筛选 + 按币种小计 |
+| POST | `/api/v1/shipments` | 登录 | 创建货运订单 |
+| GET | `/api/v1/shipments/{id}` | 登录 | 货运订单详情（含费用信息） |
+| PATCH | `/api/v1/shipments/{id}` | 登录 | 编辑货运订单（shipment_num 可改，改时校验唯一） |
+| DELETE | `/api/v1/shipments/{id}` | 登录 | 软删除货运订单（status → 1） |
+| POST | `/api/v1/shipments/{id}/confirm` | 登录 | 草稿 → 已确认 |
+| POST | `/api/v1/shipments/{id}/complete` | 登录 | 已确认 → 已完成 |
+| POST | `/api/v1/shipments/{id}/cancel` | 登录 | 草稿/已确认 → 已取消 |
+| POST | `/api/v1/shipments/{id}/charge-infos` | 登录 | 新增费用信息 |
+| PATCH | `/api/v1/charge-infos/{id}` | 登录 | 编辑费用信息 |
+| DELETE | `/api/v1/charge-infos/{id}` | 登录 | 软删除费用信息（status → 1） |
+
+**本期不提供**：`GET /api/v1/charge-infos`（跨货运订单的明细列表）与 `GET /api/v1/stats/payment-lines`（收支汇总统计）——这两个接口只为已删除的对账页与汇总页而存在。
+
+### D28. 前端页面与交互
+
+- `LoginView`：手机号登录，单输入框，提交即登录。
+- `ShipmentListView`（主界面）：筛选栏（货运订单号关键字、业务状态、应付侧币种与区间、应收侧币种与区间）+ 表格（货运订单号、费用信息条数、应付小计、应收小计、业务状态、操作人、创建时间、更新时间、操作）+ 分页。金额列展示按币种分组的小计。
+- `ShipmentDetailView`（录入主战场）：货运订单信息 + 收支聚合卡片 + 费用信息表格，支持就地新增、编辑、删除。
+- `ShipmentFormView`：新建/编辑货运订单（货运订单号一个业务字段，带唯一性预检）。
+- `UserManagementView`（admin-only）：用户表格 + 新增/编辑弹窗 + 启用停用开关 + 删除二次确认。
+- `OptionListView`（admin-only）：顶部九类选项的切换器，切换时加载对应数据；表格 + 新增/编辑弹窗 + 启用停用开关 + 删除（二次确认时展示引用数量）。
+
+**费用信息表单的分组**：字段多，一屏塞不下会让人填不动，因此弹窗按语义分三组——「费用」（费用代码、描述、应付部门、应付分支机构）、「应付」（应付币种、应付金额、应付税率、应付对象）、「应收」（应收币种、应收金额、应收对象、账单类型）。任务码在弹窗顶部只读展示，不需用户填。
+
+**表头中英双语**：所有**字段标签**一律两行——上行中文标签，下行英文。覆盖范围：表格列头（含应付/应收超表头）、筛选栏标签、表单字段标签、分组标题、合计带标签。英文取**上游字段名**而非意译：`Shipment No.`、`Job No.`、`Charge Code`、`Description`、`Department`、`Branch`、`Cost Currency`、`OS Cost Amt`、`Cost Tax ID`、`Creditor`、`Sell Currency`、`OS Sell Amt`、`Debtor`、`Inv. Type`。上游没有对应字段的（状态、操作人、创建时间等）用自然英文名。
+
+**为什么英文取上游字段名**：本系统的字段集就是上游那套，双语标签的英文一侧因此成为一张「上游字段对照表」——与上游核对时，界面上看到的英文就是对方表里的列名，不必来回翻译。非上游字段用自然英文，避免造出上游不存在的名字。
+
+**哪些保持中文**：按钮（保存、查询、删除）、状态与权限等**数据值**（已完成 / 管理员）、页面标题与区块标题。这些是「做什么」「是什么」而非「哪个字段」，双语化不增加信息量，反而拉长每处文案。英文一律用等宽字体、灰一档，不与中文争视觉重量。
+
+**实现约定**：双语标签是一个可复用的组件（`BilingualLabel`），中文在上、英文在下；英文取自一份**字段名映射表**（`locales/fieldNames.ts`），而不是散落在各模板里——否则改一个字段名要翻十几个模板。映射表同时供前端类型生成使用，保证接口字段、界面标签、上游列名三者一致。
+
+**宽表的操作列固定在右侧**：费用信息 12 列在笔记本宽度下放不下，横向滚动时行操作（编辑/删除）必须始终可点。
+
+### D29. 测试策略
+
+- **后端（pytest）**：
+  - 认证：只提交手机号即可登录成功 / 手机号未开通返回 401 / 停用账号无法登录 / 令牌过期 / 篡改令牌 / 停用后令牌失效 / 用户表无凭据列。
+  - 权限：admin 可维护选项与用户、normal 调用这些写接口返回 403 且数据不变、normal 可读候选列表、权限变更在下次请求立即生效、admin 停用自己被拒。
+  - 用户管理：手机号唯一、权限级别枚举校验、用户名称可重名、修改手机号的唯一性校验、停用后登录被拒、删除用户不影响其已创建的数据、列表不含任何凭据材料。
+  - 货运订单：创建必填校验、`shipment_num` 唯一性（含大小写与空格变体）、编辑、软删除后列表与详情均不可见。
+  - 状态机：四条合法流转各自成功、终态拒绝再流转、非法流转返回 409、**终态订单下的费用信息仍可编辑**。
+  - 费用信息：两侧必填校验、任务码自动带出且客户端传值被忽略、分类字段三态校验（不存在/已停用/已删除）、描述表外取值被接受、编辑后小计同步变化、软删除后小计同步减少。
+  - 金额：三位小数被拒、负数被拒、零金额被接受、本地金额字段恒为 null 且客户端传值被忽略、两侧币种不同被接受。
+  - 金额区间：未指定币种时不应用区间、指定币种时按合计级正确筛选。
+  - 选项：code 唯一、code 不可修改、增删改查、启停、软删除、候选列表不含停用与已删除项、管理列表能区分三种状态、删除前返回引用数量、删除后引用它的记录无法再保存、初始数据已预置。
+  - 审计：所有表的创建与更新都写入 operator 与 updated_at；删除置 status=1 并更新 operator 与 updated_at。
+- **前端（Vitest + Vue Test Utils）**：筛选参数拼装、金额格式化、费用信息表单的三组字段与联动校验、分类下拉的可新建行为由接口标记驱动、币种小计单元格渲染、用户管理页的增删改与权限选择、选项维护页的类型切换与启停用操作、普通用户看不到 admin 入口、双语标签同时显示中文与上游英文名。
+- **契约一致性**：CI 中校验前端生成的 TS 类型与后端 OpenAPI 无 diff。
+
+**理由**：金额、汇总、权限边界与审计是最容易出错且最不容易被肉眼发现的部分——金额算错一位不会报错，只会算错账；权限写错不会报错，只会让不该改的人改了。这两处必须有测试覆盖。
+
+## Risks / Trade-offs
+
+- **[手机号即凭证，泄露即等于身份泄露]** → 手机号在名片、微信、发票、快递面单上都很常见；知道某人的手机号即可以其身份登录，知道 admin 的手机号即取得 admin 权限。这是「不要密码」这一决定的直接代价，不是实现缺陷。缓解方向：内部沟通中不外传同事手机号；手机号变更即换号（外键带 ON UPDATE CASCADE 保持历史指向同一人）；登录行为留痕以便发现异常（审计日志本期不在范围内）；若日后觉得风险不可接受，可在登录后追加一次短信确认而不改变「用手机号登录」的体感。
+- **[删除一个被大量记录引用的选项，会让那些记录无法再保存]** → 删除前接口返回引用数量，前端在二次确认弹窗中展示；选项的 code 不可修改、名称可改，因此日常淘汰应优先用「停用」而非「删除」。
+- **[「停用」与「删除」两种状态并存，用户可能分不清]** → 管理列表明确标注每个选项的状态；界面文案上「停用」表示不再选用、「删除」表示作废，两者在提示语里用词区分。
+- **[某类选项表为空时，该字段的任何取值都会被拒绝]** → 费用代码、应付税率、应付对象、应收对象四类初始为空，需业务方先在管理页补齐内容再录入。描述是例外，可直接输入。
+- **[多币种下没有单一总数，业务方可能不习惯]** → 这是「不做汇率折算」的必然结果。货运订单列表按币种分组给出小计，配合订单详情页查看明细。
+- **[本地金额字段留空，业务方可能期待它有值]** → 字段位已按上游结构保留且接口恒返回 null；启用时只需补汇率表与折算逻辑，不必改表。
+- **[费用信息里没有结算金额与支付状态，无法回答「这笔钱收了没有」]** → 按本期字段清单设计，`Inv. Type`（FIN / CUR / NON-pending）是上游提供的最接近的语义。若后续需要结算跟踪，应作为新字段引入并单独出 spec。
+- **[分类字段以内容存储，将来想按部门做多维统计时只能按字符串聚合]** → 目前的需求就是按值分组，字符串聚合足够。若将来要挂更多属性，再引入关联并迁移。
+- **[软删除过滤条件若在某处遗漏，会泄露已删除数据]** → 过滤条件收敛到 repository 层单一查询入口（统一注入 `status = 0`），测试覆盖「已删除货运订单与费用信息不出现在列表、详情、小计三处」。
+- **[金额在前后端传递中被当作浮点处理]** → 后端输出字符串、前端表单用字符串绑定并格式化、小计在后端完成。
+- **[按币种分组的 JSON 数组让列表响应变重]** → 一条货运订单最多涉及几个币种，数组很小；`JSON_ARRAYAGG` 由数据库完成，无需 N+1。
+- **[JWT 无法即时吊销]** → 每次受保护请求校验账号启用状态与权限；令牌有效期 2 小时。
+- **[并发创建货运订单可能导致 `shipment_num` 重复]** → 数据库唯一索引兜底，应用捕获 IntegrityError 后返回明确错误。
+- **[MVP 的状态机没有审批人概念]** → 已在 proposal 中明确记录该取舍；后续若引入审批，应新增独立能力而非改写现有订单状态机的语义。
+
+## Migration Plan
+
+本项目为全新系统，无历史数据与线上流量，迁移风险极低。
+
+1. `docker-compose up -d` 启动本地 MySQL 8。
+2. 后端执行 `alembic upgrade head` 创建 `users`、`shipments`、`charge_info` 与九张选项表及索引、CHECK 约束。
+3. 执行 `python -m app.cli create-admin --phone <手机号> --username <名称>` 创建首个管理员账号。
+4. 执行 `python -m app.cli seed-options` 预置初始选项：部门 `FIS`/`FES`/`FIA`/`FEA`、分支机构 `SHL`、币种 `USD`/`CNY`/`EUR`/`HKD`、账单类型 `FIN`/`CUR`/`NON-pending`；其余由管理员在维护页补齐。
+5. 前端 `npm install && npm run dev`，Vite proxy 指向后端 `http://localhost:8000`。
+6. 后端 `pytest`、前端 `vitest run` 全绿后再联调。
+
+**回滚**：`alembic downgrade base` 可完全回退初始迁移（因无数据，删除表即可）。
+
+## Open Questions
+
+以下问题可在后续变更中解决，不影响本设计的方案与任务拆分：
+
+- 是否需要「恢复已删除货运订单 / 费用信息 / 用户 / 选项」的操作入口（当前 status=1 即不可见、无恢复入口）。
+- 是否需要禁止停用「最后一个管理员」（当前只禁止停用自己）。
+- 跨货运订单的明细检索与收支汇总何时补回，以及届时接口如何设计。
+- 本地金额与汇率折算何时启用（本期仅预留字段位）。
+- 是否需要「已结算金额 / 支付状态 / 支付方式 / 支付时间」来跟踪款项是否到账（不在本期字段清单内）。
+- 费用信息是否需要支持一笔多笔到账（引入 `order_payments` 流水表）。
+- 费用代码、应付税率、应付对象、应收对象四类选项的初始内容由谁提供。
+- 货运订单是否需要补充除货运订单号外的业务字段（起运地、目的地、业务日期等）。
+- 是否需要导入/导出能力，尤其是与上游表结构的对齐导出（当前仅手工录入与查询）。
