@@ -15,7 +15,7 @@
 - [ ] 2.2 定义 `app/models/shipment.py`（`shipments` 表：**只有 shipment_num 一个业务字段**，含 `shipment_num VARCHAR(64)` 与唯一索引 `uk_shipments_shipment_num`、`lifecycle VARCHAR(20)` 默认 `draft`（业务状态：draft/confirmed/completed/cancelled），以及统一状态与审计字段 `status TINYINT` 默认 0、`operator VARCHAR(20)`（FK → users.phone）、`created_at`、`updated_at`），验证迁移建表成功且确认生命周期与状态两列语义分离
 - [ ] 2.3 定义 `app/models/charge_info.py`（`charge_info` 表：shipment_id 外键、job_num、九个分类字段**全部为 VARCHAR 内容列，不设指向选项表的外键**、`os_cost_amt` 与 `os_sell_amt` 为 `DECIMAL(14,2)`、`local_cost_amt` 与 `local_sell_amt` 为 nullable DECIMAL，以及统一状态与审计字段 `status TINYINT` 默认 0、`operator VARCHAR(20)`（FK → users.phone）、`created_at`、`updated_at`），验证迁移建表成功且列类型与索引正确
 - [ ] 2.4 定义 `app/models/options.py`（九张同构选项表：charge_codes、descriptions、departments、branches、currencies、cost_tax_ids、creditors、debtors、inv_types，字段均为 code 唯一、name 可空、is_active，以及统一状态与审计字段 `status TINYINT` 默认 0、`operator VARCHAR(20)`（FK → users.phone）、`created_at`、`updated_at`），验证迁移建表成功且九张表的唯一索引均生效、status 与审计字段与其它表一致
-- [ ] 2.5 在迁移中加入 MySQL CHECK 约束（`os_cost_amt >= 0`、`os_sell_amt >= 0`、`settled_amount <= os_cost_amt`、`authority IN ('admin','normal')`、所有表 `status IN (0,1)`）并建立 `operator` → `users.phone` 的外键（**带 `ON UPDATE CASCADE`**，使改号后历史审计记录同步跟随），验证插入负数金额、非法 authority 与非法 status 的行均被数据库拒绝、修改用户手机号后引用它的审计字段同步更新
+- [ ] 2.5 在迁移中加入 MySQL CHECK 约束（`os_cost_amt >= 0`、`os_sell_amt >= 0`、`authority IN ('admin','normal')`、所有表 `status IN (0,1)`）并建立 `operator` → `users.phone` 的外键（**带 `ON UPDATE CASCADE`**，使改号后历史审计记录同步跟随），验证插入负数金额、非法 authority 与非法 status 的行均被数据库拒绝、修改用户手机号后引用它的审计字段同步更新
 - [ ] 2.6 实现 `app/db/session.py`（engine、`sessionmaker`、`get_db` 依赖，**一个请求一个事务**，service 不自行 commit）与 `app/db/base.py`，验证 `alembic downgrade base && alembic upgrade head` 可往返执行且数据表恢复
 - [ ] 2.7 编写 `tests/conftest.py`（测试用 session fixture、独立测试库、`client` fixture、种子管理员/普通用户/货运订单/费用信息/选项项 fixture），验证 `pytest` 能跑通一条健康检查用例且不污染开发库
 
@@ -97,7 +97,7 @@
 
 - [ ] 12.1 实现货运订单筛选栏组件 `src/components/ShipmentFilterBar.vue`（货运订单号关键字、业务状态、应付侧币种+区间、应收侧币种+区间，含重置；**字段标签中英双语**），验证 Vitest 测试覆盖：筛选参数正确拼装为查询串、重置后参数清空、未选币种时不发出金额区间参数、筛选标签同时显示中文与上游英文名
 - [ ] 12.2 实现按币种分组小计的展示组件 `src/components/CurrencyTotalsCell.vue`（渲染 `[{currency, amount}]` 为「USD 1,200；EUR 300」，空数组时显示占位），验证 Vitest 测试覆盖：多币种分号分隔渲染、单个币种正确渲染、空数组渲染占位
-- [ ] 12.3 实现货运订单列表页 `src/views/ShipmentListView.vue`（表格列：货运订单号、费用信息条数、应付小计、应收小计、业务状态、操作人、创建时间、更新时间、操作；**所有字段标签中英双语，英文取上游字段名**；分页；加载态与空态），验证 Vitest 测试覆盖：接口返回后正确渲染行与总数、小计列正确渲染、空结果显示空态、表头同时显示中文与上游英文名
+- [ ] 12.3 实现货运订单列表页 `src/views/ShipmentListView.vue`（表格列：货运订单号、费用信息条数、业务状态、操作人、创建时间、更新时间、操作；**不展示应付/应收小计**；**所有字段标签中英双语，英文取上游字段名**；分页；加载态与空态），验证 Vitest 测试覆盖：接口返回后正确渲染行与总数、小计列正确渲染、空结果显示空态、表头同时显示中文与上游英文名
 - [ ] 12.4 实现货运订单新建/编辑表单页 `src/views/ShipmentFormView.vue`（仅货运订单号一个字段，失焦与提交时做唯一性预检，比较语义与后端一致：不区分大小写、忽略首尾空格），验证 Vitest 测试覆盖：新建提交成功、编辑回填数据、重复的货运订单号阻止提交并给出与后端同一套措辞的提示
 - [ ] 12.5 实现订单详情页 `src/views/ShipmentDetailView.vue` 的**状态流转按钮**（草稿显示「确认」「取消」、已确认显示「完成」「取消」、已完成与已取消不显示流转按钮），验证 Vitest 测试覆盖：各业务状态下按钮的可用性正确、点击后调用对应端点并刷新列表与状态标签
 
