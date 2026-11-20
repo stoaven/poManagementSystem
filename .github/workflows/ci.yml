@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    name: 后端（pytest）
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: shipment_mgmt
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      DATABASE_URL: mysql+pymysql://root:root@127.0.0.1:3306/shipment_mgmt?charset=utf8mb4
+      TEST_DATABASE_URL: mysql+pymysql://root:root@127.0.0.1:3306/shipment_mgmt_test?charset=utf8mb4
+      JWT_SECRET: ci-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: 安装依赖
+        working-directory: backend
+        run: pip install -r requirements.txt
+      - name: 建测试库
+        run: >
+          mysql -h 127.0.0.1 -uroot -proot -e
+          "CREATE DATABASE IF NOT EXISTS shipment_mgmt_test CHARACTER SET utf8mb4;"
+      - name: 应用迁移
+        working-directory: backend
+        run: alembic upgrade head
+      - name: 跑测试
+        working-directory: backend
+        run: pytest -q
+
+  frontend:
+    name: 前端（vitest + 构建）
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci
+      - run: npm run test
+      - run: npm run build
+
+  contract:
+    name: 接口契约一致性
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: 安装依赖
+        working-directory: backend
+        run: pip install -r requirements.txt
+      - name: 安装前端依赖
+        working-directory: frontend
+        run: npm ci
+      - name: 重新导出 OpenAPI 与前端类型
+        run: |
+          cd backend
+          python -m app.cli export-openapi --out openapi.json
+          cd ../frontend
+          npm run generate:types
+      - name: 契约与生成物必须与仓库一致
+        run: |
+          git diff --exit-code -- backend/openapi.json frontend/src/types/api.d.ts

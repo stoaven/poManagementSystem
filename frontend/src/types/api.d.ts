@@ -106,6 +106,8 @@ export interface paths {
         /**
          * Admin List
          * @description 管理列表（admin-only）。include_deleted=True 时包含已删除项。
+         *
+         *     每一项附带被引用它未删除费用信息条数，供界面上直接显示。
          */
         get: operations["admin_list_api_v1_options__kind__get"];
         put?: never;
@@ -562,6 +564,8 @@ export interface components {
         /**
          * OptionOut
          * @description 一个选项项。
+         *
+         *     referenced 是引用它的未删除费用信息条数，管理列表据此提示删除影响。
          */
         OptionOut: {
             /** Code */
@@ -578,6 +582,11 @@ export interface components {
             name: string;
             /** Operator */
             operator?: string | null;
+            /**
+             * Referenced
+             * @default 0
+             */
+            referenced: number;
             /**
              * Status
              * @default 0

@@ -232,6 +232,16 @@
 
 **路由顺序注意**：`GET /api/v1/options/candidates`（一次取回六类候选）必须注册在 `GET /api/v1/options/{kind}` 之前，否则 `candidates` 会被当成一个 kind 匹配掉。
 
+### D18b. 响应体也由模型描述：请求与响应同出一份契约
+
+**选择**：所有请求体与响应体都在 `app/schemas/` 下由 Pydantic 模型描述，路由一律挂 `response_model`；契约文件 `backend/openapi.json` 入库，由 `python -m app.cli export-openapi` 重新导出。
+
+**理由**：路由直接返回 dict 时，OpenAPI 只能描述请求、描述不了响应——前端若也手写响应类型，两边各写一份，字段一改就对不上，D18 承诺的「契约单一来源」落空。把响应也纳入模型后，生成的前端类型同时覆盖请求与响应，后端改字段只需重新生成，前端 `vue-tsc` 立刻指出用错的地方。
+
+**约定**：路由只做取数与业务判断，不负责拼响应形状；序列化细节（金额两位小数字符串、时间 ISO 字符串）统一在 `_dto` 里完成，模型只声明字段与类型。`response_model` 同时起到**字段白名单**的作用——模型里没有的字段不会泄漏到响应中。
+
+**契约入版本库**：CI 里有一道「重新导出后 `git diff --exit-code`」的检查，接口一改而契约没重新生成，流水线就会红。依赖全部固定版本（`backend/requirements.txt` 逐个 pin），保证不同机器导出的契约字节一致。
+
 ### D19. 前端：Vite + Vue 3 `<script setup>` + TS + Pinia + Element Plus + Axios
 
 **选择**：如需求指定。Element Plus 的 `el-select`（支持远程搜索与新建）、`el-table`、`el-form` rules、`el-switch`、`el-radio-group`、`el-tag` 直接覆盖本系统的交互形态。

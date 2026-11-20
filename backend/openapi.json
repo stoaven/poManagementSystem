@@ -502,7 +502,7 @@
         "type": "object"
       },
       "OptionOut": {
-        "description": "一个选项项。",
+        "description": "一个选项项。\n\nreferenced 是引用它的未删除费用信息条数，管理列表据此提示删除影响。",
         "properties": {
           "code": {
             "title": "Code",
@@ -545,6 +545,11 @@
               }
             ],
             "title": "Operator"
+          },
+          "referenced": {
+            "default": 0,
+            "title": "Referenced",
+            "type": "integer"
           },
           "status": {
             "default": 0,
@@ -1244,7 +1249,7 @@
     },
     "/api/v1/options/{kind}": {
       "get": {
-        "description": "管理列表（admin-only）。include_deleted=True 时包含已删除项。",
+        "description": "管理列表（admin-only）。include_deleted=True 时包含已删除项。\n\n每一项附带被引用它未删除费用信息条数，供界面上直接显示。",
         "operationId": "admin_list_api_v1_options__kind__get",
         "parameters": [
           {
