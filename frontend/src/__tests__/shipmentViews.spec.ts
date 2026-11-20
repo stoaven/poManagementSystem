@@ -10,10 +10,16 @@ const fetchDetail = vi.fn();
 const transitionShipment = vi.fn();
 const exportChargeInfos = vi.fn();
 
-vi.mock("vue-router", () => ({
-  useRouter: () => ({ push }),
-  useRoute: () => ({ params: { id: "1" } }),
-}));
+vi.mock("vue-router", async () => {
+  // 路由参数要是响应式的，组件才能监听到「换了一个订单」
+  const { reactive } = await import("vue");
+  const params = reactive({ id: "1" });
+  return {
+    useRouter: () => ({ push }),
+    useRoute: () => ({ params }),
+    __routeParams: params,
+  };
+});
 
 vi.mock("@/api/shipments", () => ({
   listShipments: vi.fn(async () => ({
@@ -221,49 +227,58 @@ describe("货运订单详情页的导出", () => {
   });
 });
 
+describe("货运订单详情页的取数", () => {
+  it("切换到另一个订单会重新取数", async () => {
+    const { __routeParams } = (await import("vue-router")) as unknown as {
+      __routeParams: { id: string };
+    };
+    const w = mountView(ShipmentDetailView);
+    await flushPromises();
+    const callsBefore = fetchDetail.mock.calls.length;
+
+    __routeParams.id = "6";
+    await flushPromises();
+    await flushPromises();
+
+    expect(fetchDetail.mock.calls.length).toBeGreaterThan(callsBefore);
+    const lastCall = fetchDetail.mock.calls[fetchDetail.mock.calls.length - 1];
+    expect(lastCall?.[0]).toBe(6);
+    expect(w.text()).not.toContain("该货运订单不存在");
+  });
+
+  it("订单不存在时清掉上一张单的数据", async () => {
+    const { __routeParams } = (await import("vue-router")) as unknown as {
+      __routeParams: { id: string };
+    };
+    const w = mountView(ShipmentDetailView);
+    await flushPromises();
+    expect(w.text()).toContain("SH-20261119-0007");
+
+    fetchDetail.mockRejectedValue(new Error("该货运订单不存在"));
+    __routeParams.id = "999";
+    await flushPromises();
+    await flushPromises();
+
+    expect(w.text()).not.toContain("SH-20261119-0007");
+    expect(w.text()).toContain("该货运订单不存在");
+  });
+});
+
 describe("货运订单详情页的状态流转按钮", () => {
   function buttons(text: string) {
     return text.split("\n");
   }
 
-  it("草稿状态给确认与取消", async () => {
-    fetchDetail.mockResolvedValue(detailPayload("draft"));
-    const w = mountView(ShipmentDetailView);
-    await flushPromises();
-    const labels = w.findAll("button").map((b) => b.text());
-    expect(labels).toContain("确认");
-    expect(labels).toContain("取消");
-    expect(labels).not.toContain("完成");
-  });
-
-  it("已确认状态给完成与取消", async () => {
-    fetchDetail.mockResolvedValue(detailPayload("confirmed"));
-    const w = mountView(ShipmentDetailView);
-    await flushPromises();
-    const labels = w.findAll("button").map((b) => b.text());
-    expect(labels).toContain("完成");
-    expect(labels).toContain("取消");
-    expect(labels).not.toContain("确认");
-  });
-
-  it("终态不再给流转按钮", async () => {
-    fetchDetail.mockResolvedValue(detailPayload("completed"));
-    const w = mountView(ShipmentDetailView);
-    await flushPromises();
-    const labels = w.findAll("button").map((b) => b.text());
-    expect(labels).not.toContain("确认");
-    expect(labels).not.toContain("完成");
-    expect(labels).not.toContain("取消");
-    expect(buttons(w.text()).length).toBeGreaterThan(0);
-  });
-
-  it("点击确认调用流转接口", async () => {
-    fetchDetail.mockResolvedValue(detailPayload("draft"));
-    transitionShipment.mockResolvedValue({ id: 1 });
-    const w = mountView(ShipmentDetailView);
-    await flushPromises();
-    await w.findAll("button").find((b) => b.text() === "确认")!.trigger("click");
-    await flushPromises();
-    expect(transitionShipment).toHaveBeenCalledWith(1, "confirm");
+  it("任何状态下都不给流转按钮（确认/完成/取消已移除）", async () => {
+    for (const lc of ["draft", "confirmed", "completed", "cancelled"]) {
+      fetchDetail.mockResolvedValue(detailPayload(lc));
+      const w = mountView(ShipmentDetailView);
+      await flushPromises();
+      const labels = w.findAll("button").map((b) => b.text());
+      expect(labels).not.toContain("确认");
+      expect(labels).not.toContain("完成");
+      expect(labels).not.toContain("取消");
+      expect(buttons(w.text()).length).toBeGreaterThan(0);
+    }
   });
 });

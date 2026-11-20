@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
@@ -10,11 +10,7 @@ import {
   type ChargeInfoDraftOut,
   type ShipmentDetail,
 } from "@/api/chargeInfos";
-import {
-  deleteShipment,
-  exportChargeInfos,
-  transitionShipment,
-} from "@/api/shipments";
+import { deleteShipment, exportChargeInfos } from "@/api/shipments";
 import { displayMoney } from "@/utils/money";
 import BilingualLabel from "@/components/BilingualLabel.vue";
 import ChargeInfoDialog from "@/components/ChargeInfoDialog.vue";
@@ -47,29 +43,13 @@ function canGenerateRelated(c: ChargeInfo): boolean {
   return fwd || bwd;
 }
 
-/** 可用的状态流转动作：草稿→确认/取消，已确认→完成/取消，终态无。 */
-const transitions = computed(() => {
-  const lc = detail.value?.lifecycle;
-  if (lc === "draft") {
-    return [
-      { action: "confirm" as const, label: "确认" },
-      { action: "cancel" as const, label: "取消" },
-    ];
-  }
-  if (lc === "confirmed") {
-    return [
-      { action: "complete" as const, label: "完成" },
-      { action: "cancel" as const, label: "取消" },
-    ];
-  }
-  return [];
-});
-
 async function load() {
   loading.value = true;
   try {
     detail.value = await fetchShipment(Number(route.params.id));
   } catch (e) {
+    // 清掉上一张单的数据：否则订单不存在时会一直显示别人的单
+    detail.value = null;
     ElMessage.error((e as Error).message);
   } finally {
     loading.value = false;
@@ -118,18 +98,6 @@ async function onGenerateRelated(row: ChargeInfo) {
   }
 }
 
-async function onTransition(action: "confirm" | "complete" | "cancel") {
-  if (!detail.value) {
-    return;
-  }
-  try {
-    await transitionShipment(detail.value.id, action);
-    ElMessage.success("状态已更新");
-    load();
-  } catch (e) {
-    ElMessage.error((e as Error).message);
-  }
-}
 
 /** 导出该订单的全部费用信息为 Excel（英文表头）。 */
 async function onExport() {
@@ -175,10 +143,19 @@ async function onDeleteShipment() {
 }
 
 onMounted(load);
+
+/**
+ * 切换到另一个订单时重新加载——同一个路由组件会被复用，
+ * 只在 onMounted 里取数的话，从 A 单跳到 B 单会一直显示 A 单的数据。
+ */
+watch(() => route.params.id, load);
 </script>
 
 <template>
   <div class="page" v-loading="loading">
+    <p v-if="!loading && !detail" class="empty-note">
+      该货运订单不存在，或已被删除。
+    </p>
     <header class="page-head">
       <div class="doc">
         <p class="doc-kicker">货运订单</p>
@@ -220,16 +197,6 @@ onMounted(load);
         >
           编辑订单
         </el-button>
-        <!-- 状态流转是一组动作，用一条竖线与页面操作分开 -->
-        <span v-if="transitions.length" class="flow">
-          <el-button
-            v-for="t in transitions"
-            :key="t.action"
-            @click="onTransition(t.action)"
-          >
-            {{ t.label }}
-          </el-button>
-        </span>
         <el-button type="danger" plain @click="onDeleteShipment">
           删除订单
         </el-button>
@@ -405,20 +372,20 @@ onMounted(load);
 .page-actions :deep(.el-button + .el-button) {
   margin-left: 0;
 }
-/* 状态流转组：与页面操作之间一条竖线 */
-.flow {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: 6px;
-  padding-left: 12px;
-  border-left: 1px solid var(--rule);
-}
 
 /* ---- 表格 ---- */
 .sheet {
   background: var(--sheet);
   border: 1px solid var(--rule);
+}
+.empty-note {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--rule);
+  background: var(--sheet);
+  border-radius: 3px;
+  color: var(--ink-2);
+  font-size: 13px;
 }
 .sheet-actions {
   display: flex;
