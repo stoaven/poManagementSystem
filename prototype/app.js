@@ -102,7 +102,7 @@
     var btn = document.createElement("a");
     btn.href = "#";
     btn.className = "lnk lnk-rel";
-    btn.textContent = "新增关联费用";
+    btn.textContent = "新增关联收费用";
     var extra = document.createElement("div");
     extra.className = "act-extra";
     extra.appendChild(btn);
