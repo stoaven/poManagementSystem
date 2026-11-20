@@ -3,11 +3,11 @@
 ## 1. 工程骨架与本地开发环境
 
 - [x] 1.1 创建 `backend/` 目录结构（`app/{core,db,models,schemas,repositories,services,api/v1}`、`tests/`、`alembic/`），写入 `requirements.txt`（fastapi、uvicorn、sqlalchemy、alembic、pydantic-settings、pyjwt、pymysql、pytest、httpx），验证 `pip install -r requirements.txt` 成功且 `python -c "import fastapi, sqlalchemy, alembic"` 无报错
-- [ ] 1.2 搭建 FastAPI 应用骨架 `app/main.py`（应用实例、`/api/v1` 路由挂载点、CORS 中间件允许前端来源、`/health` 健康检查），验证 `uvicorn app.main:app --reload` 启动后 `curl localhost:8000/health` 返回 200
+- [x] 1.2 搭建 FastAPI 应用骨架 `app/main.py`（应用实例、`/api/v1` 路由挂载点、CORS 中间件允许前端来源、`/health` 健康检查），验证 `uvicorn app.main:app --reload` 启动后 `curl localhost:8000/health` 返回 200
 - [x] 1.3 实现 `app/core/config.py`（pydantic-settings 读取 `DATABASE_URL`、`JWT_SECRET`、`JWT_EXPIRE_MINUTES`、`CORS_ORIGINS`）与 `.env.example`，验证缺配置时启动报错并提示缺失项、配置齐全时正常启动
-- [ ] 1.4 创建 `docker-compose.yml` 提供 MySQL 8（utf8mb4、root 密码、持久化卷、端口 3306），验证 `docker compose up -d` 后 `docker compose exec db mysql -uroot -p... -e "SELECT VERSION()"` 返回 8.x 且字符集为 utf8mb4
-- [ ] 1.5 创建 `frontend/` 工程（Vite + Vue 3 + TS + Element Plus + Pinia + Vue Router + Axios + Vitest），验证 `npm install && npm run build` 成功产出 `dist/`，`npm test` 可运行
-- [ ] 1.6 在根 `README.md` 写明本地启动步骤（docker-compose、后端 uvicorn、前端 npm run dev）与目录职责，验证按 README 从零执行可跑通 `/health` 与前端首页
+- [x] 1.4 创建 `docker-compose.yml` 提供 MySQL 8（utf8mb4、root 密码、持久化卷、端口 3306），验证 `docker compose up -d` 后 `docker compose exec db mysql -uroot -p... -e "SELECT VERSION()"` 返回 8.x 且字符集为 utf8mb4
+- [x] 1.5 创建 `frontend/` 工程（Vite + Vue 3 + TS + Element Plus + Pinia + Vue Router + Axios + Vitest），验证 `npm install && npm run build` 成功产出 `dist/`，`npm test` 可运行
+- [x] 1.6 在根 `README.md` 写明本地启动步骤（docker-compose、后端 uvicorn、前端 npm run dev）与目录职责，验证按 README 从零执行可跑通 `/health` 与前端首页
 
 ## 2. 数据层：模型与数据库迁移
 
