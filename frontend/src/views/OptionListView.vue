@@ -191,6 +191,14 @@ onMounted(load);
             <el-tag v-else type="info" size="small" effect="plain">停用</el-tag>
           </template>
         </el-table-column>
+        <el-table-column width="100" align="right">
+          <template #header>
+            <BilingualLabel label="被引用" en="Referenced" />
+          </template>
+          <template #default="{ row }">
+            <span class="mono">{{ row.referenced ?? 0 }}</span>
+          </template>
+        </el-table-column>
         <el-table-column width="130">
           <template #header>
             <BilingualLabel label="操作人" en="Operator" />

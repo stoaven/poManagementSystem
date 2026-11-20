@@ -20,13 +20,17 @@ class OptionStatusIn(BaseModel):
 
 
 class OptionOut(AuditOut):
-    """一个选项项。"""
+    """一个选项项。
+
+    referenced 是引用它的未删除费用信息条数，管理列表据此提示删除影响。
+    """
 
     id: int
     code: str
     name: str
     is_active: bool
     deleted: bool
+    referenced: int = 0
 
 
 class OptionListOut(BaseModel):

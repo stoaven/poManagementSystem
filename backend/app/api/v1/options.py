@@ -3,6 +3,7 @@
 candidates 必须注册在 /{kind} 之前，否则会被当成一个 kind 匹配掉（design D21）。
 """
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user, require_admin
@@ -38,14 +39,15 @@ MODEL_MAP = {
     "debtors": Debtor,
 }
 
-# 费用信息表中与每类选项对应的取值列（删除前引用计数用）
+# 费用信息表中与每类选项对应的取值列（引用计数用）。
+# 一类选项可能对应多列：币种同时出现在应付币种与应收币种上。
 CHARGE_COLUMN_MAP = {
-    "charge_codes": "charge_code",
-    "departments": "department",
-    "branches": "branch",
-    "currencies": "cost_currency",
-    "creditors": "creditor",
-    "debtors": "debtor",
+    "charge_codes": ("charge_code",),
+    "departments": ("department",),
+    "branches": ("branch",),
+    "currencies": ("cost_currency", "sell_currency"),
+    "creditors": ("creditor",),
+    "debtors": ("debtor",),
 }
 
 
@@ -56,7 +58,7 @@ def _resolve(kind):
     return m
 
 
-def _dto(o):
+def _dto(o, referenced: int = 0):
     return {
         "id": o.id,
         "code": o.code,
@@ -66,7 +68,24 @@ def _dto(o):
         "operator": o.operator,
         "created_at": o.created_at.isoformat() if o.created_at else None,
         "updated_at": o.updated_at.isoformat() if o.updated_at else None,
+        "referenced": referenced,
     }
+
+
+def _reference_counts(db: Session, kind: str) -> dict:
+    """一次分组查询拿到「每个取值被多少条未删除费用信息引用」。"""
+    cols = [getattr(ChargeInfo, name) for name in CHARGE_COLUMN_MAP[kind]]
+    counts: dict = {}
+    for col in cols:
+        rows = (
+            db.query(col, func.count(ChargeInfo.id))
+            .filter(ChargeInfo.status == 0, col.isnot(None))
+            .group_by(col)
+            .all()
+        )
+        for code, n in rows:
+            counts[code] = counts.get(code, 0) + n
+    return counts
 
 
 @router.get("/candidates", response_model=OptionCandidatesOut)
@@ -82,13 +101,17 @@ def candidates(_: User = Depends(get_current_user), db: Session = Depends(get_db
 @router.get("/{kind}", response_model=OptionListOut)
 def admin_list(kind: str, include_deleted: bool = False,
                _: User = Depends(require_admin), db: Session = Depends(get_db)):
-    """管理列表（admin-only）。include_deleted=True 时包含已删除项。"""
+    """管理列表（admin-only）。include_deleted=True 时包含已删除项。
+
+    每一项附带被引用它未删除费用信息条数，供界面上直接显示。
+    """
     m = _resolve(kind)
     q = db.query(m)
     if not include_deleted:
         q = q.filter(m.status == 0)
     rows = q.order_by(m.id).all()
-    return {"items": [_dto(o) for o in rows]}
+    counts = _reference_counts(db, kind)
+    return {"items": [_dto(o, counts.get(o.code, 0)) for o in rows]}
 
 
 @router.get("/{kind}/options", response_model=OptionListOut)
@@ -147,11 +170,17 @@ def set_option_status(kind: str, option_id: int, body: OptionStatusIn,
 
 
 def _reference_count(db: Session, kind: str, code: str) -> int:
-    """统计引用该选项的未删除费用信息条数。"""
-    col = getattr(ChargeInfo, CHARGE_COLUMN_MAP[kind])
+    """统计引用该选项的未删除费用信息条数。
+
+    币种同时用于应付与应收两侧，任一侧引用都算引用。
+    """
+    cols = [getattr(ChargeInfo, name) for name in CHARGE_COLUMN_MAP[kind]]
     return (
         db.query(ChargeInfo)
-        .filter(col == code, ChargeInfo.status == 0)
+        .filter(
+            ChargeInfo.status == 0,
+            *[col == code for col in cols],
+        )
         .count()
     )
 
