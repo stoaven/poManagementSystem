@@ -3,10 +3,11 @@ import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
-  createRelatedChargeInfo,
   deleteChargeInfo,
+  fetchRelatedDraft,
   fetchShipment,
   type ChargeInfo,
+  type ChargeInfoDraftOut,
   type ShipmentDetail,
 } from "@/api/chargeInfos";
 import { deleteShipment, transitionShipment } from "@/api/shipments";
@@ -29,6 +30,8 @@ const loading = ref(false);
 
 const dialogVisible = ref(false);
 const editing = ref<ChargeInfo | null>(null);
+/** 「添加关联费用」时的预填草稿；null 表示不是关联模式。 */
+const relatedDraft = ref<ChargeInfoDraftOut | null>(null);
 
 /** 关联生成规则：与后端一致的两条对称条件。 */
 function canGenerateRelated(c: ChargeInfo): boolean {
@@ -71,11 +74,13 @@ async function load() {
 
 function openCreate() {
   editing.value = null;
+  relatedDraft.value = null;
   dialogVisible.value = true;
 }
 
 function openEdit(row: ChargeInfo) {
   editing.value = row;
+  relatedDraft.value = null;
   dialogVisible.value = true;
 }
 
@@ -100,11 +105,9 @@ async function onDeleteCharge(row: ChargeInfo) {
 
 async function onGenerateRelated(row: ChargeInfo) {
   try {
-    const created = await createRelatedChargeInfo(row.id);
-    ElMessage.success("已生成关联费用信息，请补齐未填写的一侧");
-    load();
-    // 生成后直接打开编辑框，引导补齐
-    editing.value = created;
+    // 只取预填草稿，不落库：用户在弹窗里补齐后点确定才写入
+    relatedDraft.value = await fetchRelatedDraft(row.id);
+    editing.value = null;
     dialogVisible.value = true;
   } catch (e) {
     ElMessage.error((e as Error).message);
@@ -317,6 +320,7 @@ onMounted(load);
       v-model="dialogVisible"
       :shipment-id="Number(route.params.id)"
       :charge-info="editing"
+      :related-draft="relatedDraft"
       @saved="load"
     />
   </div>

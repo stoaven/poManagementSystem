@@ -15,7 +15,10 @@ from app.schemas.common import AuditOut
 
 
 class ChargeInfoIn(BaseModel):
-    """创建载荷：两侧必填。任务码由父订单带出，客户端传入即被忽略。"""
+    """创建载荷：两侧必填。任务码由父订单带出，客户端传入即被忽略。
+
+    related_source_id 有值表示这是「添加关联费用」，由源记录带出关联关系。
+    """
 
     charge_code: str
     department: str
@@ -26,6 +29,25 @@ class ChargeInfoIn(BaseModel):
     sell_currency: str
     os_sell_amt: str
     debtor: str
+    related_source_id: Optional[int] = None
+
+
+class ChargeInfoDraftOut(BaseModel):
+    """关联收费用的预填草稿：服务端按规则算好，但不落库。
+
+    用户在弹窗里补齐未填写的一侧后点确定，才通过创建接口真正写入。
+    """
+
+    related_source_id: int
+    charge_code: str
+    department: str
+    branch: str
+    cost_currency: Optional[str] = None
+    os_cost_amt: Optional[str] = None
+    creditor: Optional[str] = None
+    sell_currency: Optional[str] = None
+    os_sell_amt: Optional[str] = None
+    debtor: Optional[str] = None
 
 
 class ChargeInfoPatch(BaseModel):

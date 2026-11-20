@@ -29,3 +29,4 @@ export type ShipmentDetailOut = components["schemas"]["ShipmentDetailOut"];
 export type ChargeInfoIn = components["schemas"]["ChargeInfoIn"];
 export type ChargeInfoPatch = components["schemas"]["ChargeInfoPatch"];
 export type ChargeInfoOut = components["schemas"]["ChargeInfoOut"];
+export type ChargeInfoDraftOut = components["schemas"]["ChargeInfoDraftOut"];

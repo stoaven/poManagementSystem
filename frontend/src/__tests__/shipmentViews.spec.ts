@@ -42,7 +42,7 @@ vi.mock("@/api/chargeInfos", () => ({
   createChargeInfo: vi.fn(),
   updateChargeInfo: vi.fn(),
   deleteChargeInfo: vi.fn(),
-  createRelatedChargeInfo: vi.fn(),
+  fetchRelatedDraft: vi.fn(),
 }));
 
 function detailPayload(lifecycle: string) {
@@ -125,6 +125,38 @@ describe("货运订单详情页", () => {
   it("满足条件的行提供「添加关联费用」操作", async () => {
     const w = mountView(ShipmentDetailView);
     await flushPromises();
+    expect(w.text()).toContain("添加关联费用");
+  });
+
+it("点「添加关联费用」只取草稿并弹窗，不直接落库", async () => {
+    const { fetchRelatedDraft, createChargeInfo } =
+      await import("@/api/chargeInfos");
+    const draftMock = fetchRelatedDraft as unknown as ReturnType<typeof vi.fn>;
+    const createMock = createChargeInfo as unknown as ReturnType<typeof vi.fn>;
+    draftMock.mockResolvedValue({
+      related_source_id: 11,
+      charge_code: "DHLF",
+      department: "FIS",
+      branch: "SHO",
+      cost_currency: "CNY",
+      os_cost_amt: "61400.00",
+      creditor: "CNSHL",
+      sell_currency: null,
+      os_sell_amt: null,
+      debtor: null,
+    });
+
+    const w = mountView(ShipmentDetailView);
+    await flushPromises();
+
+    const link = w.findAll("a.lnk").find((a) => a.text() === "添加关联费用");
+    expect(link).toBeDefined();
+    await link!.trigger("click");
+    await flushPromises();
+
+    // 取了草稿，弹窗打开了，但还没写库
+    expect(draftMock).toHaveBeenCalledWith(11);
+    expect(createMock).not.toHaveBeenCalled();
     expect(w.text()).toContain("添加关联费用");
   });
 

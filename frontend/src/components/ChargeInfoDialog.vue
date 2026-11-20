@@ -5,6 +5,7 @@ import {
   createChargeInfo,
   updateChargeInfo,
   type ChargeInfo,
+  type ChargeInfoDraftOut,
   type ChargeInfoIn,
   type ChargeInfoPatch,
 } from "@/api/chargeInfos";
@@ -18,6 +19,8 @@ const props = defineProps<{
   shipmentId: number;
   /** 传入则为编辑既有记录 */
   chargeInfo?: ChargeInfo | null;
+  /** 传入则为「添加关联费用」：按服务端给的预填草稿起表，保存时才落库 */
+  relatedDraft?: ChargeInfoDraftOut | null;
 }>();
 
 const emit = defineEmits<{
@@ -52,6 +55,14 @@ const visible = computed({
 });
 
 const isEdit = computed(() => Boolean(props.chargeInfo));
+/** 「添加关联费用」：新建一条与源记录关联的费用信息。 */
+const isRelated = computed(() => !props.chargeInfo && Boolean(props.relatedDraft));
+const title = computed(() => {
+  if (isEdit.value) {
+    return "编辑费用信息";
+  }
+  return isRelated.value ? "添加关联费用" : "新增费用信息";
+});
 
 /** 关联生成的记录可能有一侧为空，编辑时该侧不强制必填。 */
 const partialSide = computed(() => {
@@ -69,6 +80,7 @@ watch(
       return;
     }
     const c = props.chargeInfo;
+    const draft = props.relatedDraft;
     if (c) {
       form.charge_code = c.charge_code;
       form.department = c.department;
@@ -79,6 +91,16 @@ watch(
       form.sell_currency = c.sell_currency ?? null;
       form.os_sell_amt = c.os_sell_amt ?? null;
       form.debtor = c.debtor ?? null;
+    } else if (draft) {
+      form.charge_code = draft.charge_code;
+      form.department = draft.department;
+      form.branch = draft.branch;
+      form.cost_currency = draft.cost_currency ?? null;
+      form.os_cost_amt = draft.os_cost_amt ?? null;
+      form.creditor = draft.creditor ?? null;
+      form.sell_currency = draft.sell_currency ?? null;
+      form.os_sell_amt = draft.os_sell_amt ?? null;
+      form.debtor = draft.debtor ?? null;
     } else {
       form.charge_code = "";
       form.department = "";
@@ -91,6 +113,8 @@ watch(
       form.debtor = null;
     }
   },
+  // 打开时立刻按当前记录（或关联草稿）预填，弹窗若以打开状态挂载也一样
+  { immediate: true },
 );
 
 function validate(): boolean {
@@ -131,6 +155,7 @@ async function onSave() {
   try {
     // 校验通过后两侧齐备，组装成创建用的载荷（编辑用同一个载荷即可）
     const payload: ChargeInfoIn = {
+      related_source_id: props.relatedDraft?.related_source_id ?? null,
       charge_code: String(form.charge_code),
       department: String(form.department),
       branch: String(form.branch),
@@ -146,7 +171,9 @@ async function onSave() {
       ElMessage.success("已保存");
     } else {
       await createChargeInfo(props.shipmentId, payload);
-      ElMessage.success("已新增费用信息");
+      ElMessage.success(
+        isRelated.value ? "已添加关联费用" : "已新增费用信息",
+      );
     }
     visible.value = false;
     emit("saved");
@@ -161,7 +188,7 @@ async function onSave() {
 <template>
   <el-dialog
     v-model="visible"
-    :title="isEdit ? '编辑费用信息' : '新增费用信息'"
+    :title="title"
     width="860px"
     destroy-on-close
   >

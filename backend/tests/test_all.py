@@ -340,11 +340,11 @@ def test_detail_returns_no_totals(client, admin_headers, seeded_shipment,
 
 # ========================================================= 关联生成
 
-def test_related_generation_forward(client, admin_headers, seeded_charge):
-    # 源：Branch=SHL + Debtor=CNSHO -> Branch=SHO + Creditor=CNSHL，应付取源应收
-    r = client.post(f"/api/v1/charge-infos/{seeded_charge.id}/related",
-                    headers=admin_headers)
-    assert r.status_code == 201
+def test_related_draft_forward(client, admin_headers, seeded_charge):
+    """草稿：源 Branch=SHL + Debtor=CNSHO -> SHO + CNSHL，应付取源应收。"""
+    r = client.get(f"/api/v1/charge-infos/{seeded_charge.id}/related/draft",
+                   headers=admin_headers)
+    assert r.status_code == 200, r.text
     body = r.json()
     assert body["branch"] == "SHO"
     assert body["creditor"] == "CNSHL"
@@ -357,8 +357,41 @@ def test_related_generation_forward(client, admin_headers, seeded_charge):
     assert body["related_source_id"] == seeded_charge.id
 
 
-def test_related_generation_backward(client, admin_headers, db, admin_user,
-                                     seeded_shipment):
+def test_related_draft_does_not_persist(client, admin_headers, seeded_charge):
+    """取草稿不写库——落库要等用户在弹窗里点确定。"""
+    before = client.get(f"/api/v1/shipments/{seeded_charge.shipment_id}",
+                        headers=admin_headers).json()["charge_info"]
+    r = client.get(f"/api/v1/charge-infos/{seeded_charge.id}/related/draft",
+                   headers=admin_headers)
+    assert r.status_code == 200
+    after = client.get(f"/api/v1/shipments/{seeded_charge.shipment_id}",
+                       headers=admin_headers).json()["charge_info"]
+    assert len(after) == len(before) == 1
+
+
+def test_related_created_after_confirm(client, admin_headers, seeded_charge):
+    """用户在弹窗里补齐后点确定，创建接口才落库并记下关联关系。"""
+    draft = client.get(f"/api/v1/charge-infos/{seeded_charge.id}/related/draft",
+                       headers=admin_headers).json()
+    payload = dict(draft)
+    payload["sell_currency"] = "CNY"
+    payload["os_sell_amt"] = "61400.00"
+    payload["debtor"] = "CNSHO"
+    r = client.post(f"/api/v1/shipments/{seeded_charge.shipment_id}/charge-infos",
+                    headers=admin_headers, json=payload)
+    assert r.status_code == 201, r.text
+    body = r.json()
+    assert body["related_source_id"] == seeded_charge.id
+    assert body["branch"] == "SHO"
+    assert body["debtor"] == "CNSHO"
+    # 落库了
+    lst = client.get(f"/api/v1/shipments/{seeded_charge.shipment_id}",
+                     headers=admin_headers).json()["charge_info"]
+    assert len(lst) == 2
+
+
+def test_related_draft_backward(client, admin_headers, db, admin_user,
+                                seeded_shipment):
     from app.models import ChargeInfo
     src = ChargeInfo(
         shipment_id=seeded_shipment.id, job_num=seeded_shipment.shipment_num,
@@ -368,13 +401,39 @@ def test_related_generation_backward(client, admin_headers, db, admin_user,
         status=0, operator=admin_user.phone)
     db.add(src)
     db.flush()
-    r = client.post(f"/api/v1/charge-infos/{src.id}/related", headers=admin_headers)
-    assert r.status_code == 201
+    r = client.get(f"/api/v1/charge-infos/{src.id}/related/draft",
+                   headers=admin_headers)
+    assert r.status_code == 200, r.text
     body = r.json()
     assert body["branch"] == "SHL"
     assert body["debtor"] == "CNSHO"
     assert body["sell_currency"] == "CNY"     # 源记录的应付币种
     assert body["os_sell_amt"] == "61400.00"  # 源记录的应付金额
+
+
+def test_related_create_rejects_generated_source(client, admin_headers,
+                                                seeded_charge):
+    """源记录本身是关联生成的，不许再挂一条——防链式生成。"""
+    draft = client.get(f"/api/v1/charge-infos/{seeded_charge.id}/related/draft",
+                       headers=admin_headers).json()
+    payload = dict(draft)
+    payload.update({"sell_currency": "CNY", "os_sell_amt": "61400.00",
+                     "debtor": "CNSHO"})
+    created = client.post(f"/api/v1/shipments/{seeded_charge.shipment_id}/charge-infos",
+                          headers=admin_headers, json=payload)
+    assert created.status_code == 201
+    child_id = created.json()["id"]
+    # 拿关联记录当源再来一次：草稿接口直接拒绝
+    r = client.get(f"/api/v1/charge-infos/{child_id}/related/draft",
+                   headers=admin_headers)
+    assert r.status_code == 409
+    # 创建接口也拒绝（源记录是关联生成的）
+    payload2 = dict(draft)
+    payload2.update({"related_source_id": child_id, "sell_currency": "CNY",
+                      "os_sell_amt": "1.00", "debtor": "CNSHO"})
+    r2 = client.post(f"/api/v1/shipments/{seeded_charge.shipment_id}/charge-infos",
+                     headers=admin_headers, json=payload2)
+    assert r2.status_code == 409
 
 
 def test_no_auto_generation_on_create(client, admin_headers, seeded_shipment):
@@ -385,17 +444,6 @@ def test_no_auto_generation_on_create(client, admin_headers, seeded_shipment):
     lst = client.get(f"/api/v1/shipments/{seeded_shipment.id}",
                      headers=admin_headers).json()["charge_info"]
     assert len(lst) == 1
-
-
-def test_related_record_cannot_regenerate(client, admin_headers, seeded_charge):
-    r1 = client.post(f"/api/v1/charge-infos/{seeded_charge.id}/related",
-                     headers=admin_headers)
-    assert r1.status_code == 201
-    child_id = r1.json()["id"]
-    # 第一情形生成的记录（SHO + CNSHL）恰是第二情形的触发值，但必须被拦下
-    r2 = client.post(f"/api/v1/charge-infos/{child_id}/related",
-                     headers=admin_headers)
-    assert r2.status_code == 409
 
 
 def test_unsatisfied_condition_rejected(client, admin_headers, db, admin_user,
@@ -409,7 +457,8 @@ def test_unsatisfied_condition_rejected(client, admin_headers, db, admin_user,
         status=0, operator=admin_user.phone)
     db.add(src)
     db.flush()
-    r = client.post(f"/api/v1/charge-infos/{src.id}/related", headers=admin_headers)
+    r = client.get(f"/api/v1/charge-infos/{src.id}/related/draft",
+                   headers=admin_headers)
     assert r.status_code == 409
 
 

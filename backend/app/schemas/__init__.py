@@ -4,7 +4,12 @@
 OpenAPI 契约因此同时覆盖请求与响应。
 """
 from app.schemas.auth import LoginIn, LoginOut, MeOut, UserBrief
-from app.schemas.charge_info import ChargeInfoIn, ChargeInfoOut, ChargeInfoPatch
+from app.schemas.charge_info import (
+    ChargeInfoDraftOut,
+    ChargeInfoIn,
+    ChargeInfoOut,
+    ChargeInfoPatch,
+)
 from app.schemas.common import AuditOut, OkOut
 from app.schemas.options import (
     OptionCandidatesOut,
@@ -27,6 +32,7 @@ from app.schemas.users import AuthorityPatch, StatusIn, UserIn, UserListOut, Use
 __all__ = [
     "AuditOut",
     "AuthorityPatch",
+    "ChargeInfoDraftOut",
     "ChargeInfoIn",
     "ChargeInfoOut",
     "ChargeInfoPatch",

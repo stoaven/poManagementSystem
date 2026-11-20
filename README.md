@@ -114,7 +114,7 @@ npm run dev
 | POST | `/shipments/{id}/charge-infos` | 登录 | 新增费用信息（两侧必填，任务码自动带出） |
 | PATCH | `/charge-infos/{id}` | 登录 | 修改费用信息 |
 | DELETE | `/charge-infos/{id}` | 登录 | 软删除费用信息 |
-| POST | `/charge-infos/{id}/related` | 登录 | 生成关联收费用（满足条件时才可用） |
+| GET | `/charge-infos/{id}/related/draft` | 登录 | 关联收费用的预填草稿（**不落库**，满足条件时才可用） |
 
 `{kind}` 只接受六类固定值：`charge_codes`、`departments`、`branches`、`currencies`、
 `creditors`、`debtors`，其余一律 404。

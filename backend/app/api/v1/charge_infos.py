@@ -8,10 +8,15 @@ from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user
 from app.db.session import get_db
-from app.models import Shipment, User
+from app.models import User
 from app.repositories import charge_info as charge_info_repo
 from app.repositories import shipment as shipment_repo
-from app.schemas.charge_info import ChargeInfoIn, ChargeInfoOut, ChargeInfoPatch
+from app.schemas.charge_info import (
+    ChargeInfoDraftOut,
+    ChargeInfoIn,
+    ChargeInfoOut,
+    ChargeInfoPatch,
+)
 from app.schemas.common import OkOut
 from app.services import charge_info_service as svc
 
@@ -54,11 +59,14 @@ def delete_charge_info(line_id: int, user: User = Depends(get_current_user),
     return {"ok": True}
 
 
-@router.post("/charge-infos/{line_id}/related", status_code=201,
-             response_model=ChargeInfoOut)
-def create_related(line_id: int, user: User = Depends(get_current_user),
-                   db: Session = Depends(get_db)):
-    """由源记录生成关联记录。关联记录本身（related_source_id 非空）不能再生成。"""
+@router.get("/charge-infos/{line_id}/related/draft",
+            response_model=ChargeInfoDraftOut)
+def related_draft(line_id: int, _: User = Depends(get_current_user),
+                  db: Session = Depends(get_db)):
+    """关联收费用的预填草稿：按规则算好返回，但**不写库**。
+
+    用户在弹窗里补齐未填写的一侧、点确定之后，才通过创建接口落库。
+    关联记录本身（related_source_id 非空）不再提供该操作。
+    """
     src = _get_line_or_404(db, line_id)
-    new = svc.generate_related(db, src, user)
-    return svc.line_to_dict(new)
+    return svc.related_draft(src)

@@ -93,27 +93,33 @@ def test_main_flow_related_charge_roundtrip(client, admin_user, seeded_options):
                       headers=headers,
                       json=_charge_payload()).json()["id"]
 
-    # 满足条件时生成关联记录：另一侧留空
-    r = client.post(f"/api/v1/charge-infos/{cid}/related", headers=headers)
+    # 满足条件时能取到预填草稿：另一侧留空，且**不落库**
+    r = client.get(f"/api/v1/charge-infos/{cid}/related/draft", headers=headers)
+    assert r.status_code == 200, r.text
+    draft = r.json()
+    assert draft["branch"] == "SHO"
+    assert draft["creditor"] == "CNSHL"
+    assert draft["related_source_id"] == cid
+    assert draft["sell_currency"] is None
+    assert draft["os_sell_amt"] is None
+    assert draft["debtor"] is None
+    assert len(client.get(f"/api/v1/shipments/{sid}",
+                          headers=headers).json()["charge_info"]) == 1
+
+    # 用户在弹窗里补齐未填写的一侧，点确定才落库
+    payload = dict(draft)
+    payload.update({"sell_currency": "CNY", "os_sell_amt": "8600.00",
+                    "debtor": "CNSHO"})
+    r = client.post(f"/api/v1/shipments/{sid}/charge-infos", headers=headers,
+                    json=payload)
     assert r.status_code == 201, r.text
     gen = r.json()
-    assert gen["branch"] == "SHO"
-    assert gen["creditor"] == "CNSHL"
     assert gen["related_source_id"] == cid
-    assert gen["sell_currency"] is None
-    assert gen["os_sell_amt"] is None
-    assert gen["debtor"] is None
+    assert gen["sell_currency"] == "CNY"
 
     # 关联记录不能再链式生成
-    assert client.post(f"/api/v1/charge-infos/{gen['id']}/related",
-                       headers=headers).status_code == 409
-
-    # 补齐未填写的一侧后可保存
-    r = client.patch(f"/api/v1/charge-infos/{gen['id']}", headers=headers,
-                     json={"sell_currency": "CNY", "os_sell_amt": "8600.00",
-                           "debtor": "CNSHO"})
-    assert r.status_code == 200, r.text
-    assert r.json()["sell_currency"] == "CNY"
+    assert client.get(f"/api/v1/charge-infos/{gen['id']}/related/draft",
+                      headers=headers).status_code == 409
 
     # 源记录与补齐后的关联记录都在明细里
     detail = client.get(f"/api/v1/shipments/{sid}", headers=headers).json()
