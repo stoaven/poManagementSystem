@@ -1,0 +1,47 @@
+<script setup lang="ts">
+import { computed } from "vue";
+import { OPTION_KIND_LABELS, type OptionKind } from "@/api/options";
+import { useOptionsStore } from "@/stores/options";
+
+const props = defineProps<{
+  kind: OptionKind;
+  modelValue: string | null;
+  /** 允许直接输入表外新值（本期所有分类字段均为封闭集合，默认 false）。 */
+  allowCreate?: boolean;
+  placeholder?: string;
+}>();
+
+const emit = defineEmits<{ (e: "update:modelValue", v: string | null): void }>();
+
+const options = useOptionsStore();
+
+const items = computed(() => options.candidates(props.kind));
+
+const label = computed(
+  () => props.placeholder ?? OPTION_KIND_LABELS[props.kind] ?? "请选择",
+);
+
+function onChange(v: string | null) {
+  emit("update:modelValue", v);
+}
+</script>
+
+<template>
+  <el-select
+    :model-value="modelValue"
+    :placeholder="label"
+    :allow-create="allowCreate"
+    :filterable="true"
+    default-first-option
+    clearable
+    style="width: 100%"
+    @update:model-value="onChange"
+  >
+    <el-option
+      v-for="item in items"
+      :key="item.code"
+      :label="item.name === item.code ? item.code : `${item.code} · ${item.name}`"
+      :value="item.code"
+    />
+  </el-select>
+</template>

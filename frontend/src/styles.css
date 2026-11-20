@@ -1,0 +1,75 @@
+:root {
+  /* 与原型一致：纸白偏冷、墨色近黑带绿灰、应付粉红、应收蓝铅 */
+  --paper: #f4f6f4;
+  --sheet: #ffffff;
+  --spine: #e9edea;
+  --ink: #161a19;
+  --ink-2: #5e6663;
+  --ink-3: #8c938f;
+  --rule: #d8ddda;
+  --rule-soft: #edf0ee;
+  --pay: #a3304f;
+  --pay-wash: #fcf2f5;
+  --pay-rule: #e9cbd5;
+  --rec: #1b6a85;
+  --rec-wash: #eff6f8;
+  --rec-rule: #c2dae1;
+  --ok: #2e7d5b;
+  --font-ui: "PingFang SC", "Hiragino Sans GB", "Source Han Sans SC",
+    "Noto Sans CJK SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 等宽数字：账簿质感，金额与编号列对齐 */
+.mono,
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.el-table {
+  --el-table-border-color: var(--rule-soft);
+  --el-table-header-bg-color: #fafbfa;
+  --el-table-text-color: var(--ink);
+  font-size: 13px;
+}
+
+.el-table th.el-table__cell {
+  font-weight: 500;
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+
+.el-button {
+  border-radius: 2px;
+}
+
+.el-dialog {
+  border-radius: 3px;
+}
+
+.el-input__wrapper,
+.el-select__wrapper {
+  border-radius: 2px;
+}

@@ -1,0 +1,549 @@
+<script setup lang="ts">
+import { computed, onMounted, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { ElMessage, ElMessageBox } from "element-plus";
+import {
+  createRelatedChargeInfo,
+  deleteChargeInfo,
+  fetchShipment,
+  type ChargeInfo,
+  type ShipmentDetail,
+} from "@/api/chargeInfos";
+import { deleteShipment, transitionShipment } from "@/api/shipments";
+import { displayMoney } from "@/utils/money";
+import BilingualLabel from "@/components/BilingualLabel.vue";
+import ChargeInfoDialog from "@/components/ChargeInfoDialog.vue";
+
+const route = useRoute();
+const router = useRouter();
+
+const LIFECYCLE_LABEL: Record<string, string> = {
+  draft: "草稿",
+  confirmed: "已确认",
+  completed: "已完成",
+  cancelled: "已取消",
+};
+
+const detail = ref<ShipmentDetail | null>(null);
+const loading = ref(false);
+
+const dialogVisible = ref(false);
+const editing = ref<ChargeInfo | null>(null);
+
+/** 关联生成规则：与后端一致的两条对称条件。 */
+function canGenerateRelated(c: ChargeInfo): boolean {
+  if (c.related_source_id !== null) {
+    return false; // 关联生成的记录不再生成
+  }
+  const fwd = c.branch === "SHL" && c.debtor === "CNSHO";
+  const bwd = c.branch === "SHO" && c.creditor === "CNSHL";
+  return fwd || bwd;
+}
+
+/** 可用的状态流转动作：草稿→确认/取消，已确认→完成/取消，终态无。 */
+const transitions = computed(() => {
+  const lc = detail.value?.lifecycle;
+  if (lc === "draft") {
+    return [
+      { action: "confirm" as const, label: "确认" },
+      { action: "cancel" as const, label: "取消" },
+    ];
+  }
+  if (lc === "confirmed") {
+    return [
+      { action: "complete" as const, label: "完成" },
+      { action: "cancel" as const, label: "取消" },
+    ];
+  }
+  return [];
+});
+
+async function load() {
+  loading.value = true;
+  try {
+    detail.value = await fetchShipment(Number(route.params.id));
+  } catch (e) {
+    ElMessage.error((e as Error).message);
+  } finally {
+    loading.value = false;
+  }
+}
+
+function openCreate() {
+  editing.value = null;
+  dialogVisible.value = true;
+}
+
+function openEdit(row: ChargeInfo) {
+  editing.value = row;
+  dialogVisible.value = true;
+}
+
+async function onDeleteCharge(row: ChargeInfo) {
+  try {
+    await ElMessageBox.confirm("删除这条费用信息？", "删除确认", {
+      type: "warning",
+      confirmButtonText: "删除",
+      cancelButtonText: "取消",
+    });
+  } catch {
+    return;
+  }
+  try {
+    await deleteChargeInfo(row.id);
+    ElMessage.success("已删除");
+    load();
+  } catch (e) {
+    ElMessage.error((e as Error).message);
+  }
+}
+
+async function onGenerateRelated(row: ChargeInfo) {
+  try {
+    const created = await createRelatedChargeInfo(row.id);
+    ElMessage.success("已生成关联费用信息，请补齐未填写的一侧");
+    load();
+    // 生成后直接打开编辑框，引导补齐
+    editing.value = created;
+    dialogVisible.value = true;
+  } catch (e) {
+    ElMessage.error((e as Error).message);
+  }
+}
+
+async function onTransition(action: "confirm" | "complete" | "cancel") {
+  if (!detail.value) {
+    return;
+  }
+  try {
+    await transitionShipment(detail.value.id, action);
+    ElMessage.success("状态已更新");
+    load();
+  } catch (e) {
+    ElMessage.error((e as Error).message);
+  }
+}
+
+async function onDeleteShipment() {
+  if (!detail.value) {
+    return;
+  }
+  try {
+    await ElMessageBox.confirm(
+      `删除货运订单 ${detail.value.shipment_num}？其下的费用信息将一并不再显示。`,
+      "删除确认",
+      { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" },
+    );
+  } catch {
+    return;
+  }
+  try {
+    await deleteShipment(detail.value.id);
+    ElMessage.success("已删除");
+    router.push("/shipments");
+  } catch (e) {
+    ElMessage.error((e as Error).message);
+  }
+}
+
+onMounted(load);
+</script>
+
+<template>
+  <div class="page" v-loading="loading">
+    <header class="page-head">
+      <div class="doc">
+        <p class="doc-kicker">货运订单</p>
+        <h1 class="doc-no">
+          <span class="mono">{{ detail?.shipment_num ?? "—" }}</span>
+          <el-tag
+            v-if="detail"
+            :type="detail.lifecycle === 'completed' ? 'success' : 'primary'"
+            size="small"
+            effect="plain"
+          >
+            {{ LIFECYCLE_LABEL[detail.lifecycle] }}
+          </el-tag>
+        </h1>
+        <div class="doc-meta">
+          <span class="kv">
+            <span class="kv-k"><BilingualLabel label="业务日期" en="Business Date" /></span>
+            <span class="kv-v mono">{{ detail?.created_at?.slice(0, 10) ?? "—" }}</span>
+          </span>
+          <span class="kv">
+            <span class="kv-k"><BilingualLabel label="操作人" en="Operator" /></span>
+            <span class="kv-v mono">{{ detail?.operator ?? "—" }}</span>
+          </span>
+          <span class="kv">
+            <span class="kv-k"><BilingualLabel label="创建时间" en="Created At" /></span>
+            <span class="kv-v mono">{{ detail?.created_at?.slice(0, 16) ?? "—" }}</span>
+          </span>
+          <span class="kv">
+            <span class="kv-k"><BilingualLabel label="更新时间" en="Updated At" /></span>
+            <span class="kv-v mono">{{ detail?.updated_at?.slice(0, 16) ?? "—" }}</span>
+          </span>
+        </div>
+      </div>
+      <div class="page-actions">
+        <el-button @click="router.push('/shipments')">返回列表</el-button>
+        <el-button
+          v-if="detail"
+          @click="router.push(`/shipments/${detail.id}/edit`)"
+        >
+          编辑订单
+        </el-button>
+        <el-button v-for="t in transitions" :key="t.action" @click="onTransition(t.action)">
+          {{ t.label }}
+        </el-button>
+        <el-button type="danger" plain @click="onDeleteShipment">
+          删除订单
+        </el-button>
+      </div>
+    </header>
+
+    <!-- 合计带：按币种分组 -->
+    <div class="totals">
+      <div class="total total-pay">
+        <span class="total-label">
+          <BilingualLabel label="应付合计" en="Payable Total" />
+        </span>
+        <div class="total-list">
+          <div v-for="t in detail?.cost_totals ?? []" :key="t.currency" class="total-line">
+            <span class="cur">{{ t.currency }}</span>
+            <span class="amt">{{ displayMoney(t.amount) }}</span>
+          </div>
+          <span v-if="!detail?.cost_totals?.length" class="total-empty">暂无</span>
+        </div>
+      </div>
+      <div class="total total-rec">
+        <span class="total-label">
+          <BilingualLabel label="应收合计" en="Receivable Total" />
+        </span>
+        <div class="total-list">
+          <div v-for="t in detail?.sell_totals ?? []" :key="t.currency" class="total-line">
+            <span class="cur">{{ t.currency }}</span>
+            <span class="amt">{{ displayMoney(t.amount) }}</span>
+          </div>
+          <span v-if="!detail?.sell_totals?.length" class="total-empty">暂无</span>
+        </div>
+      </div>
+      <div class="total">
+        <span class="total-label">
+          <BilingualLabel label="费用信息" en="Charge Info" />
+        </span>
+        <div class="total-list">
+          <div class="total-line">
+            <span class="amt">{{ detail?.charge_info?.length ?? 0 }}</span>
+            <span class="unit">笔</span>
+          </div>
+        </div>
+        <span class="total-sub">金额以各自币种计价，未做汇率折算</span>
+      </div>
+    </div>
+
+    <!-- 费用信息表 -->
+    <div class="sheet">
+      <div class="sheet-head">
+        <h2 class="sheet-title"><BilingualLabel label="费用信息" en="Charge Info" /></h2>
+        <el-button type="primary" @click="openCreate">新增费用信息</el-button>
+      </div>
+
+      <el-table :data="detail?.charge_info ?? []" style="width: 100%">
+        <el-table-column width="110">
+          <template #header>
+            <BilingualLabel label="费用代码" en="Charge Code" />
+          </template>
+          <template #default="{ row }">
+            <span class="mono">{{ row.charge_code }}</span>
+            <span v-if="row.related_source_id !== null" class="tag-rel">关联</span>
+          </template>
+        </el-table-column>
+
+        <!-- 应付带 -->
+        <el-table-column width="90">
+          <template #header>
+            <BilingualLabel label="部门" en="Department" />
+          </template>
+          <template #default="{ row }">
+            <span class="mono">{{ row.department }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column width="100">
+          <template #header>
+            <BilingualLabel label="分支机构" en="Branch" />
+          </template>
+          <template #default="{ row }">
+            <span class="mono">{{ row.branch }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column width="170" align="right">
+          <template #header>
+            <BilingualLabel label="应付金额" en="OS Cost Amt" />
+          </template>
+          <template #default="{ row }">
+            <span v-if="row.cost_currency" class="cur">{{ row.cost_currency }}</span>
+            <span class="amt amt-pay">{{ displayMoney(row.os_cost_amt) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column min-width="130">
+          <template #header>
+            <BilingualLabel label="应付对象" en="Creditor" />
+          </template>
+          <template #default="{ row }">
+            <span>{{ row.creditor ?? "—" }}</span>
+          </template>
+        </el-table-column>
+
+        <!-- 应收带 -->
+        <el-table-column width="170" align="right">
+          <template #header>
+            <BilingualLabel label="应收金额" en="OS Sell Amt" />
+          </template>
+          <template #default="{ row }">
+            <span v-if="row.sell_currency" class="cur">{{ row.sell_currency }}</span>
+            <span class="amt amt-rec">{{ displayMoney(row.os_sell_amt) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column min-width="130">
+          <template #header>
+            <BilingualLabel label="应收对象" en="Debtor" />
+          </template>
+          <template #default="{ row }">
+            <span>{{ row.debtor ?? "—" }}</span>
+          </template>
+        </el-table-column>
+
+        <el-table-column width="230" align="right">
+          <template #header>
+            <BilingualLabel label="操作" en="Actions" />
+          </template>
+          <template #default="{ row }">
+            <a class="lnk" @click="openEdit(row)">编辑</a>
+            <a
+              v-if="canGenerateRelated(row)"
+              class="lnk lnk-rel"
+              @click="onGenerateRelated(row)"
+            >
+              新增关联收费用
+            </a>
+            <a class="lnk lnk-danger" @click="onDeleteCharge(row)">删除</a>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div class="sheet-foot">
+        <span class="hint">
+          应付侧：部门 / 分支机构 / 币种 / 金额 / 税率 / 应付对象；应收侧：币种 / 金额 / 应收对象
+        </span>
+      </div>
+    </div>
+
+    <ChargeInfoDialog
+      v-model="dialogVisible"
+      :shipment-id="Number(route.params.id)"
+      :charge-info="editing"
+      @saved="load"
+    />
+  </div>
+</template>
+
+<style scoped>
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+.doc-kicker {
+  margin: 0 0 4px;
+  font-size: 11.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.1em;
+}
+.doc-no {
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 25px;
+  font-weight: 500;
+}
+.doc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 28px;
+}
+.kv {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12.5px;
+}
+.kv-k {
+  color: var(--ink-3);
+}
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ---- 合计带 ---- */
+.totals {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  margin-bottom: 20px;
+}
+.total {
+  background: var(--sheet);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.total-pay {
+  background: var(--pay-wash);
+}
+.total-rec {
+  background: var(--rec-wash);
+}
+.total-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.total-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.total-line .amt {
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+.unit {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.total-empty,
+.total-sub {
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+.cur {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 1px 4px;
+}
+
+/* ---- 表格 ---- */
+.sheet {
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+}
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--rule);
+}
+.sheet-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.sheet-foot {
+  padding: 10px 18px;
+  border-top: 1px solid var(--rule);
+}
+.hint {
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+.band {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  border-radius: 2px;
+}
+.band-pay {
+  color: var(--pay);
+  background: var(--pay-wash);
+  border: 1px solid var(--pay-rule);
+}
+.band-rec {
+  color: var(--rec);
+  background: var(--rec-wash);
+  border: 1px solid var(--rec-rule);
+}
+.amt-pay {
+  color: var(--pay);
+  font-weight: 500;
+}
+.amt-rec {
+  color: var(--rec);
+  font-weight: 500;
+}
+.amt {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.cur {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 1px 3px;
+  margin-right: 4px;
+}
+.tag-rel {
+  display: inline-block;
+  margin-left: 5px;
+  padding: 0 4px;
+  font-size: 10px;
+  color: var(--rec);
+  border: 1px solid var(--rec-rule);
+  border-radius: 2px;
+  background: var(--rec-wash);
+}
+.lnk {
+  color: var(--ink-2);
+  text-decoration: none;
+  margin-left: 12px;
+  font-size: 13px;
+  border-bottom: 1px solid transparent;
+  cursor: pointer;
+}
+.lnk:hover {
+  color: var(--ink);
+  border-bottom-color: var(--ink-3);
+}
+.lnk-danger:hover {
+  color: var(--pay);
+  border-bottom-color: var(--pay);
+}
+.lnk-rel {
+  color: var(--rec);
+}
+.lnk-rel:hover {
+  color: var(--rec);
+  border-bottom-color: var(--rec);
+}
+
+@media (max-width: 900px) {
+  .totals {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
