@@ -122,7 +122,21 @@ describe("选项维护页", () => {
     const tabs = w.findAll(".tab");
     await tabs[1].trigger("click");
     await flushPromises();
-    expect(listOptions).toHaveBeenCalledWith("departments", true);
+    expect(listOptions).toHaveBeenCalledWith("departments");
+  });
+
+  it("请求时不带 include_deleted——已删除项由服务端过滤", async () => {
+    listOptions.mockResolvedValue([OPTION]);
+    const w = mountView(OptionListView);
+    await flushPromises();
+    expect(listOptions).toHaveBeenCalledWith("charge_codes");
+  });
+
+  it("页面上不出现「已删除」", async () => {
+    listOptions.mockResolvedValue([OPTION]);
+    const w = mountView(OptionListView);
+    await flushPromises();
+    expect(w.text()).not.toContain("已删除");
   });
 
   it("删除前先问引用数量，确认后才删", async () => {

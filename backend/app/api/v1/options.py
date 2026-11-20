@@ -45,7 +45,11 @@ def candidates(_: User = Depends(get_current_user), db: Session = Depends(get_db
 @router.get("/{kind}", response_model=OptionListOut)
 def admin_list(kind: str, include_deleted: bool = False,
                _: User = Depends(require_admin), db: Session = Depends(get_db)):
-    """管理列表（admin-only）。include_deleted=True 时包含已删除项。
+    """管理列表（admin-only）。
+
+    默认**已软删除的项在服务端就被过滤掉**，页面上看不到被删除的数据；
+    只有显式要求时（include_deleted=True）才连同已删除项一起返回，
+    供需要追溯删除记录的场合使用。
 
     每一项附带被引用它未删除费用信息条数，供界面上直接显示。
     """

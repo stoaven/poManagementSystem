@@ -28,7 +28,8 @@ const saving = ref(false);
 async function load() {
   loading.value = true;
   try {
-    items.value = await listOptions(kind.value, true);
+    // 服务端已把已软删除的项过滤掉，这里拿到的都是启用或停用的项
+    items.value = await listOptions(kind.value);
   } catch (e) {
     ElMessage.error((e as Error).message);
   } finally {
@@ -173,15 +174,7 @@ onMounted(load);
           </template>
           <template #default="{ row }">
             <el-tag
-              v-if="row.deleted"
-              type="info"
-              size="small"
-              effect="plain"
-            >
-              已删除
-            </el-tag>
-            <el-tag
-              v-else-if="row.is_active"
+              v-if="row.is_active"
               type="success"
               size="small"
               effect="plain"
@@ -220,14 +213,11 @@ onMounted(load);
             <BilingualLabel label="操作" en="Actions" />
           </template>
           <template #default="{ row }">
-            <template v-if="!row.deleted">
-              <a class="lnk" @click="openEdit(row)">编辑</a>
-              <a class="lnk" @click="onToggleActive(row)">
-                {{ row.is_active ? "停用" : "启用" }}
-              </a>
-              <a class="lnk lnk-danger" @click="onDelete(row)">删除</a>
-            </template>
-            <span v-else class="dim">已删除</span>
+            <a class="lnk" @click="openEdit(row)">编辑</a>
+            <a class="lnk" @click="onToggleActive(row)">
+              {{ row.is_active ? "停用" : "启用" }}
+            </a>
+            <a class="lnk lnk-danger" @click="onDelete(row)">删除</a>
           </template>
         </el-table-column>
       </el-table>

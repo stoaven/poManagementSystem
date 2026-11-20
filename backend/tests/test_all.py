@@ -170,6 +170,23 @@ def test_option_disable_and_candidates(client, admin_headers, db, seeded_options
     assert any(o["code"] == "USD" for o in admin_lst)
 
 
+def test_admin_list_excludes_deleted_by_default(client, admin_headers, db,
+                                                seeded_options):
+    """管理列表默认在服务端就过滤掉已软删除的项。"""
+    from app.models import ChargeCode
+    c = db.query(ChargeCode).filter_by(code="DHLF").first()
+    assert client.delete(f"/api/v1/options/charge_codes/{c.id}",
+                         headers=admin_headers).status_code == 200
+
+    # 默认请求：已删除的项不返回
+    lst = client.get("/api/v1/options/charge_codes", headers=admin_headers).json()
+    assert all(o["code"] != "DHLF" for o in lst["items"])
+    # 显式要求时才带出来（供追溯删除记录用）
+    lst_all = client.get("/api/v1/options/charge_codes", headers=admin_headers,
+                         params={"include_deleted": True}).json()["items"]
+    assert any(o["code"] == "DHLF" for o in lst_all)
+
+
 def test_option_delete_returns_reference_count(client, admin_headers, db,
                                                seeded_options, seeded_charge):
     from app.models import ChargeCode

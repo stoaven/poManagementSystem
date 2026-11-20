@@ -56,14 +56,13 @@ export async function fetchCandidates(): Promise<
   return data.kinds as Record<OptionKind, OptionItem[]>;
 }
 
-/** 管理列表（admin）：可含停用与已删除项。 */
-export async function listOptions(
-  kind: OptionKind,
-  includeDeleted = false,
-): Promise<OptionItem[]> {
+/**
+ * 管理列表（admin）：**不含已软删除的项**——服务端在请求时就过滤掉了，
+ * 页面上永远看不到被删除的数据。
+ */
+export async function listOptions(kind: OptionKind): Promise<OptionItem[]> {
   const { data } = await client.get<{ items: OptionItem[] }>(
     `/options/${kind}`,
-    { params: { include_deleted: includeDeleted } },
   );
   return data.items;
 }

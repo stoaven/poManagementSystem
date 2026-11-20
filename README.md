@@ -98,7 +98,7 @@ npm run dev
 | PATCH | `/users/{id}/status` | admin | 启用/停用（不能停用自己） |
 | DELETE | `/users/{id}` | admin | 软删除用户 |
 | GET | `/options/candidates` | 登录 | 一次取回六类候选（录入下拉用） |
-| GET | `/options/{kind}` | admin | 选项管理列表（可含停用与已删除项，附被引用条数） |
+| GET | `/options/{kind}` | admin | 选项管理列表（**默认已过滤掉已软删除的项**，含已停用项，附被引用条数） |
 | GET | `/options/{kind}/options` | 登录 | 候选列表（仅启用未删除，支持关键字过滤） |
 | POST | `/options/{kind}` | admin | 新增选项 |
 | PATCH | `/options/{kind}/{id}` | admin | 改名称（code 创建后不可修改） |
