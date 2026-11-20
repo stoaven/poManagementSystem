@@ -276,12 +276,19 @@ onMounted(load);
             <span class="mono">{{ row.branch }}</span>
           </template>
         </el-table-column>
-        <el-table-column width="170" align="right">
+        <el-table-column width="100">
+          <template #header>
+            <BilingualLabel label="应付币种" en="Cost Currency" />
+          </template>
+          <template #default="{ row }">
+            <span class="mono">{{ row.cost_currency ?? "—" }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column width="150" align="right">
           <template #header>
             <BilingualLabel label="应付金额" en="OS Cost Amt" />
           </template>
           <template #default="{ row }">
-            <span v-if="row.cost_currency" class="cur">{{ row.cost_currency }}</span>
             <span class="amt amt-pay">{{ displayMoney(row.os_cost_amt) }}</span>
           </template>
         </el-table-column>
@@ -295,12 +302,19 @@ onMounted(load);
         </el-table-column>
 
         <!-- 应收带 -->
-        <el-table-column width="170" align="right">
+        <el-table-column width="100">
+          <template #header>
+            <BilingualLabel label="应收币种" en="Sell Currency" />
+          </template>
+          <template #default="{ row }">
+            <span class="mono">{{ row.sell_currency ?? "—" }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column width="150" align="right">
           <template #header>
             <BilingualLabel label="应收金额" en="OS Sell Amt" />
           </template>
           <template #default="{ row }">
-            <span v-if="row.sell_currency" class="cur">{{ row.sell_currency }}</span>
             <span class="amt amt-rec">{{ displayMoney(row.os_sell_amt) }}</span>
           </template>
         </el-table-column>

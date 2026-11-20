@@ -130,7 +130,17 @@ describe("货运订单详情页", () => {
     expect(w.text()).toContain("新增关联收费用");
   });
 
-  it("详情页展示按币种分组的应付/应收合计带", async () => {
+  it("币种单独成列，表头中英双语", async () => {
+  const w = mountView(ShipmentDetailView);
+  await flushPromises();
+  const text = w.text();
+  expect(text).toContain("应付币种");
+  expect(text).toContain("Cost Currency");
+  expect(text).toContain("应收币种");
+  expect(text).toContain("Sell Currency");
+});
+
+it("详情页展示按币种分组的应付/应收合计带", async () => {
     const w = mountView(ShipmentDetailView);
     await flushPromises();
     expect(w.text()).toContain("应付合计");

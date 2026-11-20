@@ -299,7 +299,7 @@ select.input { appearance: none; padding-right: 26px;
 .row-link { cursor: pointer; }
 
 /* ---- 应付 / 应收 侧带 ---- */
-.tbl-split { min-width: 1300px; }
+.tbl-split { min-width: 1420px; }
 
 /* 操作列固定在右侧：宽表横向滚动时，行操作始终可点 */
 .tbl-split th:last-child,
@@ -348,6 +348,9 @@ select.input { appearance: none; padding-right: 26px;
   margin-right: 5px;
 }
 .cur-lg { font-size: 12px; padding: 2px 6px; margin-right: 8px; vertical-align: 3px; }
+
+/* 币种单独成列：与费用代码、部门等同列同级，不再是小方框标签 */
+.cur-cell { font-size: 12px; letter-spacing: .02em; color: var(--ink); }
 
 /* ---- 状态 ---- */
 .status { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; white-space: nowrap; }
