@@ -75,6 +75,8 @@ body {
 .btn-primary:hover { background: #2C332F; }
 .btn-ghost { background: transparent; color: var(--ink); border-color: var(--rule); }
 .btn-ghost:hover { border-color: var(--ink-3); background: #fff; }
+.btn-danger { background: transparent; color: var(--pay); border-color: var(--pay-wash); }
+.btn-danger:hover { border-color: var(--pay); background: var(--pay-wash); }
 .btn-block { width: 100%; padding: 11px 14px; margin-top: 4px; }
 
 .lnk {

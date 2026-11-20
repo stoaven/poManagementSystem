@@ -192,9 +192,16 @@ onMounted(load);
         >
           编辑订单
         </el-button>
-        <el-button v-for="t in transitions" :key="t.action" @click="onTransition(t.action)">
-          {{ t.label }}
-        </el-button>
+        <!-- 状态流转是一组动作，用一条竖线与页面操作分开 -->
+        <span v-if="transitions.length" class="flow">
+          <el-button
+            v-for="t in transitions"
+            :key="t.action"
+            @click="onTransition(t.action)"
+          >
+            {{ t.label }}
+          </el-button>
+        </span>
         <el-button type="danger" plain @click="onDeleteShipment">
           删除订单
         </el-button>
@@ -359,8 +366,25 @@ onMounted(load);
 }
 .page-actions {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
+}
+/*
+ * Element Plus 给相邻按钮自带 12px 左边距，与 flex 的 gap 叠加会让
+ * 间距忽宽忽窄（中间插了 .flow 的地方尤其明显）——这里统一由 gap 决定。
+ */
+.page-actions :deep(.el-button + .el-button) {
+  margin-left: 0;
+}
+/* 状态流转组：与页面操作之间一条竖线 */
+.flow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 6px;
+  padding-left: 12px;
+  border-left: 1px solid var(--rule);
 }
 
 /* ---- 表格 ---- */
