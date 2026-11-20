@@ -16,7 +16,6 @@ from app.schemas.options import (
     ReferencesOut,
 )
 from app.schemas.shipments import (
-    CurrencyTotal,
     ShipmentBrief,
     ShipmentDetailOut,
     ShipmentIn,
@@ -31,7 +30,6 @@ __all__ = [
     "ChargeInfoIn",
     "ChargeInfoOut",
     "ChargeInfoPatch",
-    "CurrencyTotal",
     "LoginIn",
     "LoginOut",
     "MeOut",

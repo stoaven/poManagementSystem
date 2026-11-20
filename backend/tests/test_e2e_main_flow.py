@@ -1,6 +1,6 @@
 """端到端冒烟：主链路（design D26 / tasks 16.2）。
 
-以管理员身份走一遍「登录 → 建订单 → 录费用信息 → 核对合计 → 软删除」，
+以管理员身份走一遍「登录 → 建订单 → 录费用信息 → 核对明细 → 软删除」，
 每一步都断言真实的接口行为，而不是只断言状态码。
 """
 
@@ -56,23 +56,24 @@ def test_main_flow_login_to_soft_delete(client, admin_user, seeded_options):
     assert r.status_code == 422
     assert "无效" in r.json()["detail"]
 
-    # 5. 详情页按币种给出应付与应收合计
+    # 5. 详情给出该单的费用信息明细，且不做金额合计
     r = client.get(f"/api/v1/shipments/{sid}", headers=headers)
     assert r.status_code == 200
     detail = r.json()
-    cost = {t["currency"]: t["amount"] for t in detail["cost_totals"]}
-    sell = {t["currency"]: t["amount"] for t in detail["sell_totals"]}
-    assert cost == {"USD": "1200.00"}
-    assert sell == {"CNY": "8600.00"}
     assert len(detail["charge_info"]) == 1
+    line = detail["charge_info"][0]
+    assert line["cost_currency"] == "USD"
+    assert line["os_cost_amt"] == "1200.00"
+    assert line["sell_currency"] == "CNY"
+    assert line["os_sell_amt"] == "8600.00"
+    assert "cost_totals" not in detail
+    assert "sell_totals" not in detail
 
-    # 6. 软删除该条费用信息后合计归零、详情里不再出现
+    # 6. 软删除该条费用信息后，详情里不再出现
     assert client.delete(f"/api/v1/charge-infos/{cid}",
                          headers=headers).status_code == 200
     detail = client.get(f"/api/v1/shipments/{sid}", headers=headers).json()
     assert detail["charge_info"] == []
-    assert detail["cost_totals"] == []
-    assert detail["sell_totals"] == []
 
     # 7. 软删除货运订单后，整单不可见
     assert client.delete(f"/api/v1/shipments/{sid}",
@@ -114,7 +115,7 @@ def test_main_flow_related_charge_roundtrip(client, admin_user, seeded_options):
     assert r.status_code == 200, r.text
     assert r.json()["sell_currency"] == "CNY"
 
-    # 两条记录都计入合计
+    # 源记录与补齐后的关联记录都在明细里
     detail = client.get(f"/api/v1/shipments/{sid}", headers=headers).json()
     assert len(detail["charge_info"]) == 2
 

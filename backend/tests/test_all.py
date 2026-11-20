@@ -223,7 +223,7 @@ def test_shipment_create_and_list(client, admin_headers):
     lst = client.get("/api/v1/shipments", headers=admin_headers).json()
     assert all("os_cost_amt" not in str(i) for i in lst["items"])
     assert all("charge_info_count" in i for i in lst["items"])
-    # 列表不返回应付/应收合计（合计只在详情页按币种给出）
+    # 列表不返回应付/应收合计
     assert all("cost_totals" not in i and "sell_totals" not in i
                for i in lst["items"])
 
@@ -324,21 +324,18 @@ def test_charge_info_soft_delete(client, admin_headers, seeded_charge):
     assert seeded_charge.status == 1
 
 
-def test_totals_by_currency(client, admin_headers, db, admin_user, seeded_shipment, seeded_charge):
-    from app.models import ChargeInfo
-    db.add(ChargeInfo(
-        shipment_id=seeded_shipment.id, job_num=seeded_shipment.shipment_num,
-        charge_code="OCUC", department="FIS", branch="SHL",
-        cost_currency="EUR", os_cost_amt=300, creditor="CNSHL",
-        sell_currency="CNY", os_sell_amt=2280, debtor="CNSHO",
-        status=0, operator=admin_user.phone))
-    db.flush()
+def test_detail_returns_no_totals(client, admin_headers, seeded_shipment,
+                                  seeded_charge):
+    """详情接口不做金额合计——合计带已从界面上移除。"""
     r = client.get(f"/api/v1/shipments/{seeded_shipment.id}",
-                   headers=admin_headers).json()
-    cost = {t["currency"]: t["amount"] for t in r["cost_totals"]}
-    sell = {t["currency"]: t["amount"] for t in r["sell_totals"]}
-    assert cost == {"USD": "8600.00", "EUR": "300.00"}  # 分币种，不合并
-    assert sell == {"CNY": "63680.00"}  # 同币种应收合并：61400 + 2280
+                   headers=admin_headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert "cost_totals" not in body
+    assert "sell_totals" not in body
+    # 明细本身仍然完整
+    assert len(body["charge_info"]) == 1
+    assert body["charge_info"][0]["os_cost_amt"] == "8600.00"
 
 
 # ========================================================= 关联生成

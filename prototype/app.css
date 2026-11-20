@@ -291,7 +291,6 @@ select.input { appearance: none; padding-right: 26px;
 }
 .f-label .bi-en, .field-label .bi-en { font-size: 10px; }
 .grp-title .bi-en { color: inherit; opacity: .6; }
-.total-label .bi-en { color: inherit; opacity: .6; }
 .tbl-split .band-pay .bi-en { color: rgba(163,48,79,.55); }
 .tbl-split .band-rec .bi-en { color: rgba(27,106,133,.55); }
 .tbl th.num { text-align: right; }
@@ -332,22 +331,9 @@ select.input { appearance: none; padding-right: 26px;
 .amt-pay { color: var(--pay); font-weight: 500; }
 .amt-rec { color: var(--rec); font-weight: 500; }
 .amt { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-.amt-lg { font-size: 22px; letter-spacing: -.02em; }
 .amt-line { display: flex; align-items: baseline; justify-content: flex-end; gap: 5px; }
 .amt-sub { display: block; font-size: 11px; color: var(--ink-3); font-family: var(--font-mono); margin-top: 2px; }
 
-.cur {
-  display: inline-block;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  letter-spacing: .04em;
-  color: var(--ink-2);
-  border: 1px solid var(--rule);
-  border-radius: 2px;
-  padding: 1px 4px;
-  margin-right: 5px;
-}
-.cur-lg { font-size: 12px; padding: 2px 6px; margin-right: 8px; vertical-align: 3px; }
 
 /* 币种单独成列：与费用代码、部门等同列同级，不再是小方框标签 */
 .cur-cell { font-size: 12px; letter-spacing: .02em; color: var(--ink); }
@@ -412,16 +398,6 @@ select.input { appearance: none; padding-right: 26px;
 
 /* ========================= 合计带 ========================= */
 
-.totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; margin-bottom: 20px; }
-.total { background: var(--sheet); padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; }
-.total-pay { background: var(--pay-wash); }
-.total-rec { background: var(--rec-wash); }
-.total-label { font-size: 11.5px; color: var(--ink-2); letter-spacing: .04em; }
-.total-pay .total-label { color: var(--pay); }
-.total-rec .total-label { color: var(--rec); }
-.total-line { display: flex; align-items: baseline; }
-.total-unit { font-size: 12px; color: var(--ink-3); margin-left: 6px; }
-.total-sub { font-size: 11.5px; color: var(--ink-3); }
 
 /* ========================= 选项页签 ========================= */
 
@@ -504,7 +480,6 @@ select.input { appearance: none; padding-right: 26px;
   .who-role { font-size: 10px; }
   .who-phone { display: none; }
   .main { padding: 22px 20px 40px; }
-  .totals { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 720px) {

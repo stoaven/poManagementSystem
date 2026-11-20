@@ -54,8 +54,6 @@ function detailPayload(lifecycle: string) {
     operator: "13800000001",
     created_at: "2026-11-19 09:24:00",
     updated_at: "2026-11-19 10:12:00",
-    cost_totals: [],
-    sell_totals: [],
     charge_info: [
       {
         id: 11,
@@ -140,11 +138,14 @@ describe("货运订单详情页", () => {
   expect(text).toContain("Sell Currency");
 });
 
-it("详情页展示按币种分组的应付/应收合计带", async () => {
+it("不再展示合计带", async () => {
     const w = mountView(ShipmentDetailView);
     await flushPromises();
-    expect(w.text()).toContain("应付合计");
-    expect(w.text()).toContain("Payable Total");
+    const text = w.text();
+    expect(text).not.toContain("应付合计");
+    expect(text).not.toContain("Payable Total");
+    expect(text).not.toContain("应收合计");
+    expect(text).not.toContain("Receivable Total");
   });
 });
 

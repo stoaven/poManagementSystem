@@ -107,7 +107,7 @@ npm run dev
 | DELETE | `/options/{kind}/{id}` | admin | 软删除（返回删除前的引用数量） |
 | GET | `/shipments` | 登录 | 货运订单列表（分页 + 关键字 + 业务状态；**不返回任何金额**） |
 | POST | `/shipments` | 登录 | 新建货运订单（单号全局唯一，不区分大小写） |
-| GET | `/shipments/{id}` | 登录 | 订单详情：费用信息 + 按币种分组的应付/应收合计 |
+| GET | `/shipments/{id}` | 登录 | 订单详情：其下全部费用信息（不做金额合计） |
 | PATCH | `/shipments/{id}` | 登录 | 修改货运订单号 |
 | DELETE | `/shipments/{id}` | 登录 | 软删除订单 |
 | POST | `/shipments/{id}/confirm\|complete\|cancel` | 登录 | 状态流转（草稿→确认/取消，已确认→完成/取消） |

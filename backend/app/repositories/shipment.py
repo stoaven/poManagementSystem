@@ -64,38 +64,3 @@ def line_counts(db: Session, ids: List[int]) -> Dict[int, int]:
         .all()
     )
     return dict(rows)
-
-
-def totals_by_currency(db: Session, shipment_id: int) -> dict:
-    """单订单按币种合计：应付按 cost_currency、应收按 sell_currency 各自分组。
-
-    未填写的一侧（关联生成记录待补齐的那侧）没有币种，不参与合计。
-    """
-    cost_rows = (
-        db.query(ChargeInfo.cost_currency, func.sum(ChargeInfo.os_cost_amt))
-        .filter(
-            ChargeInfo.shipment_id == shipment_id,
-            ChargeInfo.status == 0,
-            ChargeInfo.cost_currency.isnot(None),
-        )
-        .group_by(ChargeInfo.cost_currency)
-        .all()
-    )
-    sell_rows = (
-        db.query(ChargeInfo.sell_currency, func.sum(ChargeInfo.os_sell_amt))
-        .filter(
-            ChargeInfo.shipment_id == shipment_id,
-            ChargeInfo.status == 0,
-            ChargeInfo.sell_currency.isnot(None),
-        )
-        .group_by(ChargeInfo.sell_currency)
-        .all()
-    )
-    return {
-        "cost_totals": [
-            {"currency": r[0], "amount": f"{r[1] or 0:.2f}"} for r in cost_rows
-        ],
-        "sell_totals": [
-            {"currency": r[0], "amount": f"{r[1] or 0:.2f}"} for r in sell_rows
-        ],
-    }

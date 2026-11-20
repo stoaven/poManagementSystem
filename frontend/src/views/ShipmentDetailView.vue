@@ -201,46 +201,6 @@ onMounted(load);
       </div>
     </header>
 
-    <!-- 合计带：按币种分组 -->
-    <div class="totals">
-      <div class="total total-pay">
-        <span class="total-label">
-          <BilingualLabel label="应付合计" en="Payable Total" />
-        </span>
-        <div class="total-list">
-          <div v-for="t in detail?.cost_totals ?? []" :key="t.currency" class="total-line">
-            <span class="cur">{{ t.currency }}</span>
-            <span class="amt">{{ displayMoney(t.amount) }}</span>
-          </div>
-          <span v-if="!detail?.cost_totals?.length" class="total-empty">暂无</span>
-        </div>
-      </div>
-      <div class="total total-rec">
-        <span class="total-label">
-          <BilingualLabel label="应收合计" en="Receivable Total" />
-        </span>
-        <div class="total-list">
-          <div v-for="t in detail?.sell_totals ?? []" :key="t.currency" class="total-line">
-            <span class="cur">{{ t.currency }}</span>
-            <span class="amt">{{ displayMoney(t.amount) }}</span>
-          </div>
-          <span v-if="!detail?.sell_totals?.length" class="total-empty">暂无</span>
-        </div>
-      </div>
-      <div class="total">
-        <span class="total-label">
-          <BilingualLabel label="费用信息" en="Charge Info" />
-        </span>
-        <div class="total-list">
-          <div class="total-line">
-            <span class="amt">{{ detail?.charge_info?.length ?? 0 }}</span>
-            <span class="unit">笔</span>
-          </div>
-        </div>
-        <span class="total-sub">金额以各自币种计价，未做汇率折算</span>
-      </div>
-    </div>
-
     <!-- 费用信息表 -->
     <div class="sheet">
       <div class="sheet-head">
@@ -403,60 +363,6 @@ onMounted(load);
   gap: 8px;
 }
 
-/* ---- 合计带 ---- */
-.totals {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1px;
-  background: var(--rule);
-  border: 1px solid var(--rule);
-  margin-bottom: 20px;
-}
-.total {
-  background: var(--sheet);
-  padding: 16px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.total-pay {
-  background: var(--pay-wash);
-}
-.total-rec {
-  background: var(--rec-wash);
-}
-.total-list {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.total-line {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-.total-line .amt {
-  font-size: 22px;
-  letter-spacing: -0.02em;
-}
-.unit {
-  font-size: 12px;
-  color: var(--ink-3);
-}
-.total-empty,
-.total-sub {
-  font-size: 11.5px;
-  color: var(--ink-3);
-}
-.cur {
-  display: inline-block;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  border: 1px solid var(--rule);
-  border-radius: 2px;
-  padding: 1px 4px;
-}
-
 /* ---- 表格 ---- */
 .sheet {
   background: var(--sheet);
@@ -553,11 +459,5 @@ onMounted(load);
 .lnk-rel:hover {
   color: var(--rec);
   border-bottom-color: var(--rec);
-}
-
-@media (max-width: 900px) {
-  .totals {
-    grid-template-columns: 1fr;
-  }
 }
 </style>

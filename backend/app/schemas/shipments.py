@@ -1,6 +1,4 @@
 """货运订单的请求体与响应体。"""
-from typing import Optional
-
 from pydantic import BaseModel
 
 from app.schemas.charge_info import ChargeInfoOut
@@ -38,19 +36,13 @@ class ShipmentListOut(BaseModel):
     page_size: int
 
 
-class CurrencyTotal(BaseModel):
-    """按币种分组的合计。未填写的一侧不参与合计，因此币种不会为空。"""
-
-    currency: str
-    amount: str
-
-
 class ShipmentDetailOut(AuditOut):
-    """订单详情：含其下全部未删除的费用信息与按币种分组的合计。"""
+    """订单详情：含其下全部未删除的费用信息。
+
+    不做金额合计——合计带已从界面上移除，聚合查询随之取消。
+    """
 
     id: int
     shipment_num: str
     lifecycle: str
     charge_info: list[ChargeInfoOut] = []
-    cost_totals: list[CurrencyTotal] = []
-    sell_totals: list[CurrencyTotal] = []

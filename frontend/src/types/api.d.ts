@@ -475,16 +475,6 @@ export interface components {
             /** Sell Currency */
             sell_currency?: string | null;
         };
-        /**
-         * CurrencyTotal
-         * @description 按币种分组的合计。未填写的一侧不参与合计，因此币种不会为空。
-         */
-        CurrencyTotal: {
-            /** Amount */
-            amount: string;
-            /** Currency */
-            currency: string;
-        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -627,7 +617,9 @@ export interface components {
         };
         /**
          * ShipmentDetailOut
-         * @description 订单详情：含其下全部未删除的费用信息与按币种分组的合计。
+         * @description 订单详情：含其下全部未删除的费用信息。
+         *
+         *     不做金额合计——合计带已从界面上移除，聚合查询随之取消。
          */
         ShipmentDetailOut: {
             /**
@@ -635,11 +627,6 @@ export interface components {
              * @default []
              */
             charge_info: components["schemas"]["ChargeInfoOut"][];
-            /**
-             * Cost Totals
-             * @default []
-             */
-            cost_totals: components["schemas"]["CurrencyTotal"][];
             /** Created At */
             created_at?: string | null;
             /** Id */
@@ -648,11 +635,6 @@ export interface components {
             lifecycle: string;
             /** Operator */
             operator?: string | null;
-            /**
-             * Sell Totals
-             * @default []
-             */
-            sell_totals: components["schemas"]["CurrencyTotal"][];
             /** Shipment Num */
             shipment_num: string;
             /**

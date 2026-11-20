@@ -315,25 +315,6 @@
         "title": "ChargeInfoPatch",
         "type": "object"
       },
-      "CurrencyTotal": {
-        "description": "按币种分组的合计。未填写的一侧不参与合计，因此币种不会为空。",
-        "properties": {
-          "amount": {
-            "title": "Amount",
-            "type": "string"
-          },
-          "currency": {
-            "title": "Currency",
-            "type": "string"
-          }
-        },
-        "required": [
-          "currency",
-          "amount"
-        ],
-        "title": "CurrencyTotal",
-        "type": "object"
-      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -636,7 +617,7 @@
         "type": "object"
       },
       "ShipmentDetailOut": {
-        "description": "订单详情：含其下全部未删除的费用信息与按币种分组的合计。",
+        "description": "订单详情：含其下全部未删除的费用信息。\n\n不做金额合计——合计带已从界面上移除，聚合查询随之取消。",
         "properties": {
           "charge_info": {
             "default": [],
@@ -644,14 +625,6 @@
               "$ref": "#/components/schemas/ChargeInfoOut"
             },
             "title": "Charge Info",
-            "type": "array"
-          },
-          "cost_totals": {
-            "default": [],
-            "items": {
-              "$ref": "#/components/schemas/CurrencyTotal"
-            },
-            "title": "Cost Totals",
             "type": "array"
           },
           "created_at": {
@@ -683,14 +656,6 @@
               }
             ],
             "title": "Operator"
-          },
-          "sell_totals": {
-            "default": [],
-            "items": {
-              "$ref": "#/components/schemas/CurrencyTotal"
-            },
-            "title": "Sell Totals",
-            "type": "array"
           },
           "shipment_num": {
             "title": "Shipment Num",

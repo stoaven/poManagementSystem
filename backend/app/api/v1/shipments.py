@@ -103,7 +103,6 @@ def get_shipment(sid: int, _: User = Depends(get_current_user),
         "created_at": s.created_at.isoformat() if s.created_at else None,
         "updated_at": s.updated_at.isoformat() if s.updated_at else None,
         "charge_info": [charge_info_svc.line_to_dict(c) for c in lines],
-        **shipment_repo.totals_by_currency(db, s.id),
     }
 
 
