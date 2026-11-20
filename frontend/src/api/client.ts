@@ -33,19 +33,28 @@ client.interceptors.request.use((config) => {
  */
 client.interceptors.response.use(
   (resp) => resp,
-  (error) => {
+  async (error) => {
     const status = error?.response?.status;
-    const message =
-      error?.response?.data?.detail || error?.message || "请求失败";
+    const data = error?.response?.data;
+    let message = error?.message || "请求失败";
+    if (data && typeof data === "object" && typeof data.detail === "string") {
+      message = data.detail;
+    } else if (data instanceof Blob) {
+      // 导出这类二进制请求，出错时响应体也是 Blob，取出里面的 detail
+      try {
+        const parsed = JSON.parse(await data.text());
+        if (typeof parsed?.detail === "string") {
+          message = parsed.detail;
+        }
+      } catch {
+        /* 不是 JSON 就沿用默认文案 */
+      }
+    }
     if (status === 401) {
       setToken(null);
       if (!location.hash.startsWith("#/login")) {
         location.hash = "#/login";
       }
-      return Promise.reject(new Error(message));
-    }
-    if (status === 403) {
-      return Promise.reject(new Error(message));
     }
     return Promise.reject(new Error(message));
   },

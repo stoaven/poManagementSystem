@@ -108,6 +108,7 @@ npm run dev
 | GET | `/shipments` | 登录 | 货运订单列表（分页 + 关键字 + 业务状态；**不返回任何金额**） |
 | POST | `/shipments` | 登录 | 新建货运订单（单号全局唯一，不区分大小写） |
 | GET | `/shipments/{id}` | 登录 | 订单详情：其下全部费用信息（不做金额合计） |
+| GET | `/shipments/{id}/charge-infos/export` | 登录 | 导出该订单的费用信息为 Excel（**英文表头**） |
 | PATCH | `/shipments/{id}` | 登录 | 修改货运订单号 |
 | DELETE | `/shipments/{id}` | 登录 | 软删除订单 |
 | POST | `/shipments/{id}/confirm\|complete\|cancel` | 登录 | 状态流转（草稿→确认/取消，已确认→完成/取消） |
@@ -145,6 +146,19 @@ npm run dev
 | 货运订单与费用信息的增删改查 | 可 | 可 |
 
 权限在每次请求时从数据库实时读取，因此调整权限或停用账号立即生效。
+
+## 导出 Excel
+
+货运订单详情页有「导出 Excel」按钮，把该订单下的**全部费用信息**导出成一个
+`.xlsx` 文件。表头用**上游英文字段名**：
+
+```
+Job Num. | Charge Code | Department | Branch | Cost Currency |
+OS Cost Amt | Creditor | Sell Currency | OS Sell Amt | Debtor
+```
+
+两列金额以**数值**写入（可直接在 Excel 里求和与筛选），已软删除的记录不导出。
+文件名取自货运订单号，如 `charge-info-SSHL26309129.xlsx`。
 
 ## 登录方式
 

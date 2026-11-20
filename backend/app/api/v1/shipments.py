@@ -4,7 +4,9 @@
 路由只做取数与判权限，规则在 `app/services/shipment_service.py`，
 查询助手在 `app/repositories/shipment.py`。
 """
-from fastapi import APIRouter, Depends, HTTPException
+from urllib.parse import quote
+
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user
@@ -20,6 +22,7 @@ from app.schemas.shipments import (
     ShipmentListOut,
 )
 from app.services import charge_info_service as charge_info_svc
+from app.services import export_service
 from app.services import shipment_service as svc
 
 router = APIRouter(prefix="/shipments", tags=["shipments"])
@@ -104,6 +107,27 @@ def get_shipment(sid: int, _: User = Depends(get_current_user),
         "updated_at": s.updated_at.isoformat() if s.updated_at else None,
         "charge_info": [charge_info_svc.line_to_dict(c) for c in lines],
     }
+
+
+@router.get("/{sid}/charge-infos/export")
+def export_charge_infos(sid: int, _: User = Depends(get_current_user),
+                        db: Session = Depends(get_db)):
+    """把该货运订单下的全部费用信息导出为 Excel（英文表头）。"""
+    s = _get_or_404(db, sid)
+    lines = charge_info_repo.lines_of(db, s.id)
+    content = export_service.build_charge_info_workbook(lines)
+    filename = export_service.export_filename(s.shipment_num)
+    return Response(
+        content=content,
+        media_type="application/vnd.openxmlformats-officedocument."
+                   "spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": (
+                f"attachment; filename=\"{filename}\"; "
+                f"filename*=UTF-8''{quote(filename)}"
+            )
+        },
+    )
 
 
 @router.post("/{sid}/confirm", response_model=ShipmentBrief)

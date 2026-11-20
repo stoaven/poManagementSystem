@@ -10,7 +10,11 @@ import {
   type ChargeInfoDraftOut,
   type ShipmentDetail,
 } from "@/api/chargeInfos";
-import { deleteShipment, transitionShipment } from "@/api/shipments";
+import {
+  deleteShipment,
+  exportChargeInfos,
+  transitionShipment,
+} from "@/api/shipments";
 import { displayMoney } from "@/utils/money";
 import BilingualLabel from "@/components/BilingualLabel.vue";
 import ChargeInfoDialog from "@/components/ChargeInfoDialog.vue";
@@ -127,6 +131,27 @@ async function onTransition(action: "confirm" | "complete" | "cancel") {
   }
 }
 
+/** 导出该订单的全部费用信息为 Excel（英文表头）。 */
+async function onExport() {
+  if (!detail.value) {
+    return;
+  }
+  try {
+    const blob = await exportChargeInfos(detail.value.id);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `charge-info-${detail.value.shipment_num}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    ElMessage.success("已导出 Excel");
+  } catch (e) {
+    ElMessage.error((e as Error).message);
+  }
+}
+
 async function onDeleteShipment() {
   if (!detail.value) {
     return;
@@ -215,7 +240,12 @@ onMounted(load);
     <div class="sheet">
       <div class="sheet-head">
         <h2 class="sheet-title"><BilingualLabel label="费用信息" en="Charge Info" /></h2>
-        <el-button type="primary" @click="openCreate">新增费用信息</el-button>
+        <div class="sheet-actions">
+          <el-button :disabled="!detail?.charge_info?.length" @click="onExport">
+            导出 Excel
+          </el-button>
+          <el-button type="primary" @click="openCreate">新增费用信息</el-button>
+        </div>
       </div>
 
       <el-table :data="detail?.charge_info ?? []" style="width: 100%">
@@ -389,6 +419,11 @@ onMounted(load);
 .sheet {
   background: var(--sheet);
   border: 1px solid var(--rule);
+}
+.sheet-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .sheet-head {
   display: flex;

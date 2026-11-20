@@ -8,6 +8,7 @@ import ShipmentDetailView from "@/views/ShipmentDetailView.vue";
 const push = vi.fn();
 const fetchDetail = vi.fn();
 const transitionShipment = vi.fn();
+const exportChargeInfos = vi.fn();
 
 vi.mock("vue-router", () => ({
   useRouter: () => ({ push }),
@@ -35,6 +36,7 @@ vi.mock("@/api/shipments", () => ({
   deleteShipment: vi.fn(),
   transitionShipment: (...args: unknown[]) => transitionShipment(...args),
   fetchShipment: vi.fn(),
+  exportChargeInfos: (...args: unknown[]) => exportChargeInfos(...args),
 }));
 
 vi.mock("@/api/chargeInfos", () => ({
@@ -178,6 +180,44 @@ it("不再展示合计带", async () => {
     expect(text).not.toContain("Payable Total");
     expect(text).not.toContain("应收合计");
     expect(text).not.toContain("Receivable Total");
+  });
+});
+
+describe("货运订单详情页的导出", () => {
+  it("点「导出 Excel」调用导出接口并触发下载", async () => {
+    exportChargeInfos.mockResolvedValue(new Blob(["xlsx"]));
+    // jsdom 没有 createObjectURL，补一个
+    const createObjectURL = vi.fn(() => "blob:mock");
+    const revokeObjectURL = vi.fn();
+    (URL as unknown as { createObjectURL: unknown }).createObjectURL =
+      createObjectURL;
+    (URL as unknown as { revokeObjectURL: unknown }).revokeObjectURL =
+      revokeObjectURL;
+
+    const w = mountView(ShipmentDetailView);
+    await flushPromises();
+
+    const btn = w
+      .findAll("button")
+      .find((b) => b.text().replace(/\s+/g, "") === "导出Excel");
+    expect(btn).toBeDefined();
+    await btn!.trigger("click");
+    await flushPromises();
+
+    expect(exportChargeInfos).toHaveBeenCalledWith(1);
+    expect(createObjectURL).toHaveBeenCalled();
+    expect(revokeObjectURL).toHaveBeenCalled();
+  });
+
+  it("没有费用信息时导出按钮不可用", async () => {
+    fetchDetail.mockResolvedValue({ ...detailPayload("draft"), charge_info: [] });
+    const w = mountView(ShipmentDetailView);
+    await flushPromises();
+    const btn = w
+      .findAll("button")
+      .find((b) => b.text().replace(/\s+/g, "") === "导出Excel");
+    expect(btn).toBeDefined();
+    expect(btn!.attributes("disabled")).toBeDefined();
   });
 });
 

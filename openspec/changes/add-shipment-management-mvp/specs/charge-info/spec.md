@@ -187,6 +187,25 @@
 - **WHEN** 用户删除一条费用信息
 - **THEN** 系统将该记录的 status 置为 1，并更新操作人与更新时间
 
+### Requirement: 收付款信息的导出
+
+系统 SHALL 允许已认证用户把某个货运订单下的全部未删除费用信息导出为 Excel 文件。导出文件的表头 MUST 使用**上游英文字段名**（`Job Num.`、`Charge Code`、`Department`、`Branch`、`Cost Currency`、`OS Cost Amt`、`Creditor`、`Sell Currency`、`OS Sell Amt`、`Debtor`），每一行 MUST 对应一条费用信息，金额 MUST 以数值形式写入以便在 Excel 中求和与筛选。已被软删除的费用信息 MUST NOT 出现在导出结果中。
+
+#### Scenario: 导出全部费用信息
+
+- **WHEN** 用户在某货运订单的详情页触发导出
+- **THEN** 系统返回一个 Excel 文件，表头为上游英文字段名，每条未删除的费用信息各占一行
+
+#### Scenario: 导出的金额是数字
+
+- **WHEN** 导出的文件在 Excel 中打开
+- **THEN** 两列金额是数值而非文本，可直接求和
+
+#### Scenario: 已删除的记录不导出
+
+- **WHEN** 某费用信息已被软删除
+- **THEN** 它不出现在导出结果中
+
 ### Requirement: 收付款信息的可见性
 
 系统 SHALL 仅在所属货运订单与记录自身的 status 均为 0（未删除）时返回该记录。记录 MUST 归属于且仅归属于一条货运订单。
