@@ -1,54 +1,19 @@
 import client from "./client";
+import type {
+  ChargeInfoIn,
+  ChargeInfoOut,
+  ChargeInfoPatch,
+  ShipmentDetailOut,
+} from "./contract";
 
-export interface ChargeInfo {
-  id: number;
-  shipment_id: number;
-  job_num: string;
-  charge_code: string;
-  department: string;
-  branch: string;
-  cost_currency: string | null;
-  os_cost_amt: string | null;
-  creditor: string | null;
-  sell_currency: string | null;
-  os_sell_amt: string | null;
-  debtor: string | null;
-  related_source_id: number | null;
-  operator: string | null;
-  created_at: string | null;
-  updated_at: string | null;
-}
+/** 费用信息记录：两侧共处一条记录，关联生成的一侧可能为空。 */
+export type ChargeInfo = ChargeInfoOut;
 
-/** 创建时的必填载荷；编辑时同一结构但字段可选。 */
-export interface ChargeInfoIn {
-  charge_code: string;
-  department: string;
-  branch: string;
-  cost_currency: string | null;
-  os_cost_amt: string | null;
-  creditor: string | null;
-  sell_currency: string | null;
-  os_sell_amt: string | null;
-  debtor: string | null;
-}
+/** 新建与编辑费用信息的载荷。 */
+export type { ChargeInfoIn, ChargeInfoPatch };
 
-export interface ShipmentDetail {
-  id: number;
-  shipment_num: string;
-  lifecycle: string;
-  status: number;
-  operator: string | null;
-  created_at: string | null;
-  updated_at: string | null;
-  charge_info: ChargeInfo[];
-  cost_totals: CurrencyTotal[];
-  sell_totals: CurrencyTotal[];
-}
-
-export interface CurrencyTotal {
-  currency: string;
-  amount: string;
-}
+/** 详情页要用的订单详情（含费用信息与按币种分组的合计）。 */
+export type ShipmentDetail = ShipmentDetailOut;
 
 export async function fetchShipment(id: number): Promise<ShipmentDetail> {
   const { data } = await client.get<ShipmentDetail>(`/shipments/${id}`);
@@ -68,7 +33,7 @@ export async function createChargeInfo(
 
 export async function updateChargeInfo(
   id: number,
-  body: Partial<ChargeInfoIn>,
+  body: Partial<ChargeInfoPatch>,
 ): Promise<ChargeInfo> {
   const { data } = await client.patch<ChargeInfo>(`/charge-infos/${id}`, body);
   return data;

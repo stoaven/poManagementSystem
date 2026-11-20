@@ -17,13 +17,14 @@ def _money(v):
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user
 from app.db.session import get_db
 from app.models import ChargeInfo, Shipment, User
 from app.repositories.option import validate_option_value
+from app.schemas.charge_info import ChargeInfoIn, ChargeInfoOut, ChargeInfoPatch
+from app.schemas.common import OkOut
 
 router = APIRouter(tags=["charge-info"])
 
@@ -44,32 +45,6 @@ RELATED_RULES = {
     ("SHL", "CNSHO"): {"branch": "SHO", "creditor": "CNSHL"},
     ("SHO", "CNSHL"): {"branch": "SHL", "debtor": "CNSHO"},
 }
-
-
-class ChargeSideOptional(BaseModel):
-    """编辑用：所有字段可选（由服务层判断完整性）。"""
-    charge_code: Optional[str] = None
-    department: Optional[str] = None
-    branch: Optional[str] = None
-    cost_currency: Optional[str] = None
-    os_cost_amt: Optional[str] = None
-    creditor: Optional[str] = None
-    sell_currency: Optional[str] = None
-    os_sell_amt: Optional[str] = None
-    debtor: Optional[str] = None
-
-
-class ChargeInfoIn(ChargeSideOptional):
-    """创建用：应付侧与应收侧必填。"""
-    charge_code: str
-    department: str
-    branch: str
-    cost_currency: str
-    os_cost_amt: str
-    creditor: str
-    sell_currency: str
-    os_sell_amt: str
-    debtor: str
 
 
 def _check_amount(name: str, value: str) -> Decimal:
@@ -125,7 +100,7 @@ def _validate_options(db: Session, data: dict, existing: Optional[ChargeInfo] = 
                               unchanged=(existing is not None and getattr(existing, field) == value))
 
 
-@router.post("/shipments/{sid}/charge-infos", status_code=201)
+@router.post("/shipments/{sid}/charge-infos", status_code=201, response_model=ChargeInfoOut)
 def create_charge_info(sid: int, body: ChargeInfoIn,
                        user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     s = db.get(Shipment, sid)
@@ -142,8 +117,8 @@ def create_charge_info(sid: int, body: ChargeInfoIn,
     return _line_dto(c)
 
 
-@router.patch("/charge-infos/{line_id}")
-def update_charge_info(line_id: int, body: ChargeSideOptional,
+@router.patch("/charge-infos/{line_id}", response_model=ChargeInfoOut)
+def update_charge_info(line_id: int, body: ChargeInfoPatch,
                        user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     c = _get_line_or_404(db, line_id)
     data = body.model_dump(exclude_none=True)
@@ -157,7 +132,7 @@ def update_charge_info(line_id: int, body: ChargeSideOptional,
     return _line_dto(c)
 
 
-@router.delete("/charge-infos/{line_id}")
+@router.delete("/charge-infos/{line_id}", response_model=OkOut)
 def delete_charge_info(line_id: int, user: User = Depends(get_current_user),
                        db: Session = Depends(get_db)):
     c = _get_line_or_404(db, line_id)
@@ -166,7 +141,7 @@ def delete_charge_info(line_id: int, user: User = Depends(get_current_user),
     return {"ok": True}
 
 
-@router.post("/charge-infos/{line_id}/related", status_code=201)
+@router.post("/charge-infos/{line_id}/related", status_code=201, response_model=ChargeInfoOut)
 def create_related(line_id: int, user: User = Depends(get_current_user),
                    db: Session = Depends(get_db)):
     """由源记录生成关联记录。关联记录本身（related_source_id 非空）不能再生成。"""

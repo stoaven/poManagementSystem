@@ -1,21 +1,17 @@
 """认证路由：手机号登录（无密码无验证码）。"""
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user
 from app.core.security import create_token
 from app.db.session import get_db
 from app.models import User
+from app.schemas.auth import LoginIn, LoginOut, MeOut
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-class LoginIn(BaseModel):
-    phone: str
-
-
-@router.post("/login")
+@router.post("/login", response_model=LoginOut)
 def login(body: LoginIn, db: Session = Depends(get_db)):
     user = (
         db.query(User)
@@ -35,7 +31,7 @@ def login(body: LoginIn, db: Session = Depends(get_db)):
     }
 
 
-@router.get("/me")
+@router.get("/me", response_model=MeOut)
 def me(user: User = Depends(get_current_user)):
     return {
         "id": user.id,

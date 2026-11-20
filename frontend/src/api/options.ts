@@ -1,4 +1,11 @@
 import client from "./client";
+import type {
+  OptionCandidatesOut,
+  OptionDeleteOut,
+  OptionIn,
+  OptionOut,
+  ReferencesOut,
+} from "./contract";
 
 /** 六类选项的 kind，与后端路由的 {kind} 对应。 */
 export type OptionKind =
@@ -37,30 +44,16 @@ export const OPTION_KIND_LABELS_EN: Record<OptionKind, string> = {
   debtors: "Debtor",
 };
 
-export interface OptionItem {
-  id: number;
-  code: string;
-  name: string;
-  is_active: boolean;
-  deleted: boolean;
-  operator: string | null;
-  created_at: string | null;
-  updated_at: string | null;
-}
-
-export interface OptionIn {
-  code: string;
-  name?: string | null;
-}
+export interface OptionItem extends OptionOut {}
 
 /** 一次取回六类候选（启用且未删除）。 */
 export async function fetchCandidates(): Promise<
   Record<OptionKind, OptionItem[]>
 > {
-  const { data } = await client.get<{
-    kinds: Record<OptionKind, OptionItem[]>;
-  }>("/options/candidates");
-  return data.kinds;
+  const { data } = await client.get<OptionCandidatesOut>(
+    "/options/candidates",
+  );
+  return data.kinds as Record<OptionKind, OptionItem[]>;
 }
 
 /** 管理列表（admin）：可含停用与已删除项。 */
@@ -105,7 +98,7 @@ export async function fetchOptionReferences(
   kind: OptionKind,
   id: number,
 ): Promise<number> {
-  const { data } = await client.get<{ referenced: number }>(
+  const { data } = await client.get<ReferencesOut>(
     `/options/${kind}/${id}/references`,
   );
   return data.referenced;
@@ -115,8 +108,8 @@ export async function fetchOptionReferences(
 export async function deleteOption(
   kind: OptionKind,
   id: number,
-): Promise<{ ok: boolean; referenced: number }> {
-  const { data } = await client.delete<{ ok: boolean; referenced: number }>(
+): Promise<OptionDeleteOut> {
+  const { data } = await client.delete<OptionDeleteOut>(
     `/options/${kind}/${id}`,
   );
   return data;

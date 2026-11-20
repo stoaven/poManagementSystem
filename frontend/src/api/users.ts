@@ -1,23 +1,18 @@
 import client from "./client";
 import type { Authority } from "./auth";
+import type {
+  UserIn as UserInContract,
+  UserOut as UserOutContract,
+} from "./contract";
 
-export interface UserItem {
-  id: number;
-  phone: string;
-  username: string;
+/** 权限级别在契约里是 string，后端只接受 admin/normal，这里收窄一次。 */
+export type UserItem = Omit<UserOutContract, "authority"> & {
   authority: Authority;
-  is_active: boolean;
-  status: number;
-  operator: string | null;
-  created_at: string | null;
-  updated_at: string | null;
-}
+};
 
-export interface UserIn {
-  phone: string;
-  username: string;
+export type UserIn = Omit<UserInContract, "authority"> & {
   authority: Authority;
-}
+};
 
 export async function listUsers(params: {
   keyword?: string;

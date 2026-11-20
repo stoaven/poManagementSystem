@@ -72,6 +72,22 @@ def seed_options() -> None:
         db.close()
 
 
+def export_openapi(out_path: str) -> None:
+    """导出 OpenAPI 契约，供前端 openapi-typescript 生成 TypeScript 类型。"""
+    import json
+    from pathlib import Path
+
+    from app.main import app
+
+    path = Path(out_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(app.openapi(), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    print(f"OpenAPI 已导出：{path}")
+
+
 def main():
     parser = argparse.ArgumentParser(prog="app.cli")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -82,11 +98,18 @@ def main():
 
     sub.add_parser("seed-options", help="预置初始选项数据")
 
+    p_openapi = sub.add_parser("export-openapi", help="导出 OpenAPI 契约")
+    p_openapi.add_argument(
+        "--out", default="openapi.json", help="输出路径（默认 backend/openapi.json）"
+    )
+
     args = parser.parse_args()
     if args.cmd == "create-admin":
         create_admin(args.phone, args.username)
     elif args.cmd == "seed-options":
         seed_options()
+    elif args.cmd == "export-openapi":
+        export_openapi(args.out)
 
 
 if __name__ == "__main__":

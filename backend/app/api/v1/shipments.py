@@ -3,13 +3,19 @@
 筛选只提供 shipment_num 关键字与业务状态；不提供金额区间（spec）。
 """
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user
 from app.db.session import get_db
 from app.models import ChargeInfo, Shipment, User
+from app.schemas.common import OkOut
+from app.schemas.shipments import (
+    ShipmentBrief,
+    ShipmentDetailOut,
+    ShipmentIn,
+    ShipmentListOut,
+)
 
 router = APIRouter(prefix="/shipments", tags=["shipments"])
 
@@ -20,14 +26,6 @@ TRANSITIONS = {
     ("confirmed", "completed"),
     ("confirmed", "cancelled"),
 }
-
-
-class ShipmentIn(BaseModel):
-    shipment_num: str
-
-
-class TransitionIn(BaseModel):
-    pass
 
 
 def _get_or_404(db: Session, sid: int) -> Shipment:
@@ -47,15 +45,24 @@ def _totals(db: Session, shipment_id: int) -> dict:
             .all()
         )
     # 分两条查询，避免一次 GROUP BY 把两侧都按应付币种切分
+    # 未填写的一侧（关联生成记录待补齐的那侧）没有币种，不参与合计
     cost_rows = (
         db.query(ChargeInfo.cost_currency, func.sum(ChargeInfo.os_cost_amt))
-        .filter(ChargeInfo.shipment_id == shipment_id, ChargeInfo.status == 0)
+        .filter(
+            ChargeInfo.shipment_id == shipment_id,
+            ChargeInfo.status == 0,
+            ChargeInfo.cost_currency.isnot(None),
+        )
         .group_by(ChargeInfo.cost_currency)
         .all()
     )
     sell_rows = (
         db.query(ChargeInfo.sell_currency, func.sum(ChargeInfo.os_sell_amt))
-        .filter(ChargeInfo.shipment_id == shipment_id, ChargeInfo.status == 0)
+        .filter(
+            ChargeInfo.shipment_id == shipment_id,
+            ChargeInfo.status == 0,
+            ChargeInfo.sell_currency.isnot(None),
+        )
         .group_by(ChargeInfo.sell_currency)
         .all()
     )
@@ -101,7 +108,7 @@ def _line_counts(db: Session, ids):
     return dict(rows)
 
 
-@router.get("")
+@router.get("", response_model=ShipmentListOut)
 def list_shipments(
     keyword: str = "",
     lifecycle: str = "",
@@ -145,7 +152,7 @@ def list_shipments(
     }
 
 
-@router.post("", status_code=201)
+@router.post("", status_code=201, response_model=ShipmentBrief)
 def create_shipment(body: ShipmentIn, user: User = Depends(get_current_user),
                     db: Session = Depends(get_db)):
     num = body.shipment_num.strip()
@@ -165,7 +172,7 @@ def create_shipment(body: ShipmentIn, user: User = Depends(get_current_user),
             "operator": s.operator}
 
 
-@router.patch("/{sid}")
+@router.patch("/{sid}", response_model=ShipmentBrief)
 def update_shipment(sid: int, body: ShipmentIn, user: User = Depends(get_current_user),
                     db: Session = Depends(get_db)):
     s = _get_or_404(db, sid)
@@ -185,7 +192,7 @@ def update_shipment(sid: int, body: ShipmentIn, user: User = Depends(get_current
             "operator": s.operator}
 
 
-@router.delete("/{sid}")
+@router.delete("/{sid}", response_model=OkOut)
 def delete_shipment(sid: int, user: User = Depends(get_current_user),
                     db: Session = Depends(get_db)):
     s = _get_or_404(db, sid)
@@ -194,7 +201,7 @@ def delete_shipment(sid: int, user: User = Depends(get_current_user),
     return {"ok": True}
 
 
-@router.get("/{sid}")
+@router.get("/{sid}", response_model=ShipmentDetailOut)
 def get_shipment(sid: int, _: User = Depends(get_current_user), db: Session = Depends(get_db)):
     s = _get_or_404(db, sid)
     lines = (
@@ -262,19 +269,19 @@ def _transition(sid: int, target: str, user: User, db: Session):
             "operator": s.operator}
 
 
-@router.post("/{sid}/confirm")
+@router.post("/{sid}/confirm", response_model=ShipmentBrief)
 def confirm_shipment(sid: int, user: User = Depends(get_current_user),
                      db: Session = Depends(get_db)):
     return _transition(sid, "confirmed", user, db)
 
 
-@router.post("/{sid}/complete")
+@router.post("/{sid}/complete", response_model=ShipmentBrief)
 def complete_shipment(sid: int, user: User = Depends(get_current_user),
                       db: Session = Depends(get_db)):
     return _transition(sid, "completed", user, db)
 
 
-@router.post("/{sid}/cancel")
+@router.post("/{sid}/cancel", response_model=ShipmentBrief)
 def cancel_shipment(sid: int, user: User = Depends(get_current_user),
                     db: Session = Depends(get_db)):
     return _transition(sid, "cancelled", user, db)

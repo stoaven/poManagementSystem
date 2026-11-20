@@ -1,17 +1,15 @@
 import client from "./client";
+import type {
+  ShipmentBrief,
+  ShipmentDetailOut,
+  ShipmentIn,
+  ShipmentListOut,
+} from "./contract";
 
 export type Lifecycle = "draft" | "confirmed" | "completed" | "cancelled";
 
-export interface ShipmentListItem {
-  id: number;
-  shipment_num: string;
-  lifecycle: Lifecycle;
-  status: number;
-  operator: string | null;
-  created_at: string | null;
-  updated_at: string | null;
-  charge_info_count: number;
-}
+/** 列表行，取自契约。 */
+export type ShipmentListItem = ShipmentListOut["items"][number];
 
 export interface Page<T> {
   items: T[];
@@ -29,40 +27,28 @@ export interface ShipmentParams {
 
 export async function listShipments(
   params: ShipmentParams = {},
-): Promise<Page<ShipmentListItem>> {
-  const { data } = await client.get<Page<ShipmentListItem>>("/shipments", {
+): Promise<ShipmentListOut> {
+  const { data } = await client.get<ShipmentListOut>("/shipments", {
     params,
   });
   return data;
 }
 
-export interface CreateShipmentIn {
-  shipment_num: string;
-}
-
-export interface ShipmentDetail {
-  id: number;
-  shipment_num: string;
-  lifecycle: string;
-  status: number;
-  operator: string | null;
-  created_at: string | null;
-  updated_at: string | null;
-  charge_info_count?: number;
-}
-
-export async function fetchShipment(id: number): Promise<ShipmentDetail> {
-  const { data } = await client.get<ShipmentDetail>(`/shipments/${id}`);
+export async function fetchShipment(id: number): Promise<ShipmentDetailOut> {
+  const { data } = await client.get<ShipmentDetailOut>(`/shipments/${id}`);
   return data;
 }
 
-export async function createShipment(body: CreateShipmentIn) {
-  const { data } = await client.post("/shipments", body);
+export async function createShipment(body: ShipmentIn): Promise<ShipmentBrief> {
+  const { data } = await client.post<ShipmentBrief>("/shipments", body);
   return data;
 }
 
-export async function updateShipment(id: number, body: CreateShipmentIn) {
-  const { data } = await client.patch(`/shipments/${id}`, body);
+export async function updateShipment(
+  id: number,
+  body: ShipmentIn,
+): Promise<ShipmentBrief> {
+  const { data } = await client.patch<ShipmentBrief>(`/shipments/${id}`, body);
   return data;
 }
 
@@ -74,7 +60,9 @@ export async function deleteShipment(id: number) {
 export async function transitionShipment(
   id: number,
   action: "confirm" | "complete" | "cancel",
-) {
-  const { data } = await client.post(`/shipments/${id}/${action}`);
+): Promise<ShipmentBrief> {
+  const { data } = await client.post<ShipmentBrief>(
+    `/shipments/${id}/${action}`,
+  );
   return data;
 }

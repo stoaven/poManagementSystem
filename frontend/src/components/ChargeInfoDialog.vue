@@ -6,6 +6,7 @@ import {
   updateChargeInfo,
   type ChargeInfo,
   type ChargeInfoIn,
+  type ChargeInfoPatch,
 } from "@/api/chargeInfos";
 import { useOptionsStore } from "@/stores/options";
 import { isValidMoney } from "@/utils/money";
@@ -27,7 +28,13 @@ const emit = defineEmits<{
 const options = useOptionsStore();
 const saving = ref(false);
 
-const form = reactive<ChargeInfoIn>({
+/**
+ * 表单状态一律按「可空」处理：编辑时可能只有一侧有值（关联生成的记录），
+ * 创建时的完整性由下面的校验把关，提交前再组装成两侧齐备的载荷。
+ */
+type ChargeInfoForm = { [K in keyof ChargeInfoPatch]-?: string | null };
+
+const form = reactive<ChargeInfoForm>({
   charge_code: "",
   department: "",
   branch: "",
@@ -66,12 +73,12 @@ watch(
       form.charge_code = c.charge_code;
       form.department = c.department;
       form.branch = c.branch;
-      form.cost_currency = c.cost_currency;
-      form.os_cost_amt = c.os_cost_amt;
-      form.creditor = c.creditor;
-      form.sell_currency = c.sell_currency;
-      form.os_sell_amt = c.os_sell_amt;
-      form.debtor = c.debtor;
+      form.cost_currency = c.cost_currency ?? null;
+      form.os_cost_amt = c.os_cost_amt ?? null;
+      form.creditor = c.creditor ?? null;
+      form.sell_currency = c.sell_currency ?? null;
+      form.os_sell_amt = c.os_sell_amt ?? null;
+      form.debtor = c.debtor ?? null;
     } else {
       form.charge_code = "";
       form.department = "";
@@ -87,7 +94,7 @@ watch(
 );
 
 function validate(): boolean {
-  const required: Array<[keyof ChargeInfoIn, string]> = [
+  const required: Array<[keyof ChargeInfoPatch, string]> = [
     ["charge_code", "费用代码"],
     ["department", "应付部门"],
     ["branch", "应付分支机构"],
@@ -122,10 +129,17 @@ async function onSave() {
   }
   saving.value = true;
   try {
+    // 校验通过后两侧齐备，组装成创建用的载荷（编辑用同一个载荷即可）
     const payload: ChargeInfoIn = {
-      ...form,
+      charge_code: String(form.charge_code),
+      department: String(form.department),
+      branch: String(form.branch),
+      cost_currency: String(form.cost_currency),
       os_cost_amt: String(form.os_cost_amt),
+      creditor: String(form.creditor),
+      sell_currency: String(form.sell_currency),
       os_sell_amt: String(form.os_sell_amt),
+      debtor: String(form.debtor),
     };
     if (isEdit.value && props.chargeInfo) {
       await updateChargeInfo(props.chargeInfo.id, payload);

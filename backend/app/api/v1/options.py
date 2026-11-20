@@ -2,10 +2,7 @@
 
 candidates 必须注册在 /{kind} 之前，否则会被当成一个 kind 匹配掉（design D21）。
 """
-from typing import Optional
-
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user, require_admin
@@ -19,6 +16,15 @@ from app.models import (
     Debtor,
     Department,
     User,
+)
+from app.schemas.options import (
+    OptionCandidatesOut,
+    OptionDeleteOut,
+    OptionIn,
+    OptionListOut,
+    OptionOut,
+    OptionStatusIn,
+    ReferencesOut,
 )
 
 router = APIRouter(prefix="/options", tags=["options"])
@@ -63,16 +69,7 @@ def _dto(o):
     }
 
 
-class OptionIn(BaseModel):
-    code: str
-    name: Optional[str] = None
-
-
-class OptionStatusIn(BaseModel):
-    is_active: bool
-
-
-@router.get("/candidates")
+@router.get("/candidates", response_model=OptionCandidatesOut)
 def candidates(_: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """一次取回六类候选（启用且未删除）。"""
     result = {}
@@ -82,7 +79,7 @@ def candidates(_: User = Depends(get_current_user), db: Session = Depends(get_db
     return {"kinds": result}
 
 
-@router.get("/{kind}")
+@router.get("/{kind}", response_model=OptionListOut)
 def admin_list(kind: str, include_deleted: bool = False,
                _: User = Depends(require_admin), db: Session = Depends(get_db)):
     """管理列表（admin-only）。include_deleted=True 时包含已删除项。"""
@@ -94,7 +91,7 @@ def admin_list(kind: str, include_deleted: bool = False,
     return {"items": [_dto(o) for o in rows]}
 
 
-@router.get("/{kind}/options")
+@router.get("/{kind}/options", response_model=OptionListOut)
 def candidate_list(kind: str, q: str = "", _: User = Depends(get_current_user),
                    db: Session = Depends(get_db)):
     """候选列表（登录即可读），支持按 code/name 关键字过滤。"""
@@ -106,7 +103,7 @@ def candidate_list(kind: str, q: str = "", _: User = Depends(get_current_user),
     return {"items": [_dto(o) for o in rows]}
 
 
-@router.post("/{kind}", status_code=201)
+@router.post("/{kind}", status_code=201, response_model=OptionOut)
 def create_option(kind: str, body: OptionIn, admin: User = Depends(require_admin),
                   db: Session = Depends(get_db)):
     m = _resolve(kind)
@@ -121,7 +118,7 @@ def create_option(kind: str, body: OptionIn, admin: User = Depends(require_admin
     return _dto(o)
 
 
-@router.patch("/{kind}/{option_id}")
+@router.patch("/{kind}/{option_id}", response_model=OptionOut)
 def update_option(kind: str, option_id: int, body: OptionIn,
                   admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     """编辑：只允许改名称；code 一经创建不可修改。"""
@@ -136,7 +133,7 @@ def update_option(kind: str, option_id: int, body: OptionIn,
     return _dto(o)
 
 
-@router.patch("/{kind}/{option_id}/status")
+@router.patch("/{kind}/{option_id}/status", response_model=OptionOut)
 def set_option_status(kind: str, option_id: int, body: OptionStatusIn,
                       admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     """启用/停用。停用项不出现在候选列表，但仍可被费用信息引用。"""
@@ -159,7 +156,7 @@ def _reference_count(db: Session, kind: str, code: str) -> int:
     )
 
 
-@router.get("/{kind}/{option_id}/references")
+@router.get("/{kind}/{option_id}/references", response_model=ReferencesOut)
 def option_references(kind: str, option_id: int, _: User = Depends(require_admin),
                        db: Session = Depends(get_db)):
     """删除前的引用数量预检（spec：删除前告知引用条数）。"""
@@ -170,7 +167,7 @@ def option_references(kind: str, option_id: int, _: User = Depends(require_admin
     return {"referenced": _reference_count(db, kind, o.code)}
 
 
-@router.delete("/{kind}/{option_id}")
+@router.delete("/{kind}/{option_id}", response_model=OptionDeleteOut)
 def delete_option(kind: str, option_id: int, admin: User = Depends(require_admin),
                   db: Session = Depends(get_db)):
     """软删除：status 置 1，返回删除前的引用数量。"""
