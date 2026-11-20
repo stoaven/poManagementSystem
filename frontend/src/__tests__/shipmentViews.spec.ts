@@ -122,10 +122,10 @@ describe("货运订单详情页", () => {
     expect(w.text()).not.toContain("Job No.");
   });
 
-  it("满足条件的行提供「新增关联收费用」操作", async () => {
+  it("满足条件的行提供「添加关联费用」操作", async () => {
     const w = mountView(ShipmentDetailView);
     await flushPromises();
-    expect(w.text()).toContain("新增关联收费用");
+    expect(w.text()).toContain("添加关联费用");
   });
 
   it("币种单独成列，表头中英双语", async () => {

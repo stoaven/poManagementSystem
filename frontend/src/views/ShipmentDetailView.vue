@@ -299,14 +299,14 @@ onMounted(load);
             <BilingualLabel label="操作" en="Actions" />
           </template>
           <template #default="{ row }">
-            <a class="lnk" @click="openEdit(row)">编辑</a>
             <a
               v-if="canGenerateRelated(row)"
               class="lnk lnk-rel"
               @click="onGenerateRelated(row)"
             >
-              新增关联收费用
+              添加关联费用
             </a>
+            <a class="lnk" @click="openEdit(row)">编辑</a>
             <a class="lnk lnk-danger" @click="onDeleteCharge(row)">删除</a>
           </template>
         </el-table-column>

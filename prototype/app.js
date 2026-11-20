@@ -102,11 +102,9 @@
     var btn = document.createElement("a");
     btn.href = "#";
     btn.className = "lnk lnk-rel";
-    btn.textContent = "新增关联收费用";
-    var extra = document.createElement("div");
-    extra.className = "act-extra";
-    extra.appendChild(btn);
-    act.appendChild(extra);
+    btn.textContent = "添加关联费用";
+    // 放在「编辑」左边，与应用里的排列一致
+    act.insertBefore(btn, act.firstChild);
   });
 
   /* ---------- 选项名称省略时以代码呈现（与 spec「名称可省略」一致） ---------- */

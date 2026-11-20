@@ -92,8 +92,6 @@ body {
 .lnk-danger:hover { color: var(--pay); border-bottom-color: var(--pay); }
 .lnk-rel { color: var(--rec); }
 .lnk-rel:hover { color: var(--rec); border-bottom-color: var(--rec); }
-.act-extra { display: block; margin-top: 5px; }
-.act-extra .lnk { margin-left: 0; }
 
 .tag-rel {
   display: inline-block; margin-left: 5px; padding: 0 4px;
