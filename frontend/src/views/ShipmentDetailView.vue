@@ -246,7 +246,7 @@ onMounted(load);
             <span class="mono">{{ row.branch }}</span>
           </template>
         </el-table-column>
-        <el-table-column width="110" align="right">
+        <el-table-column width="110" align="left">
           <template #header>
             <BilingualLabel label="应付币种" en="Cost Currency" />
           </template>
@@ -272,7 +272,7 @@ onMounted(load);
         </el-table-column>
 
         <!-- 应收带 -->
-        <el-table-column width="110" align="right">
+        <el-table-column width="110" align="left">
           <template #header>
             <BilingualLabel label="应收币种" en="Sell Currency" />
           </template>

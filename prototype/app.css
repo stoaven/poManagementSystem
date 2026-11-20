@@ -340,7 +340,7 @@ select.input { appearance: none; padding-right: 26px;
 
 /* 币种单独成列：与费用代码、部门等同列同级，不再是小方框标签。
    值右对齐，紧贴右边的金额列——「USD 8,600.00」读作一个整体 */
-.cur-cell { font-size: 12px; letter-spacing: .02em; color: var(--ink); text-align: right; }
+.cur-cell { font-size: 12px; letter-spacing: .02em; color: var(--ink); text-align: left; }
 /* 金额左对齐，紧跟在币种右边（选择器要比 .tbl .num 更具体才能压过右对齐） */
 .tbl .amt-cell { text-align: left; }
 
