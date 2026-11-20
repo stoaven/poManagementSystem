@@ -185,6 +185,19 @@ def test_candidates_route_not_shadowed(client, admin_headers, seeded_options):
     assert "kinds" in r.json()
 
 
+def test_option_kinds_are_exactly_six(client, admin_headers, seeded_options):
+    """六类选项定稿；描述/应付税率/账单类型三张表已随字段删除而移除。"""
+    kinds = client.get("/api/v1/options/candidates",
+                       headers=admin_headers).json()["kinds"]
+    assert set(kinds) == {
+        "charge_codes", "departments", "branches",
+        "currencies", "creditors", "debtors",
+    }
+    for kind in ("descriptions", "cost_tax_ids", "inv_types"):
+        r = client.get(f"/api/v1/options/{kind}", headers=admin_headers)
+        assert r.status_code == 404
+
+
 # ========================================================= 货运订单
 
 def test_shipment_num_uniqueness(client, admin_headers, seeded_shipment):
@@ -210,6 +223,9 @@ def test_shipment_create_and_list(client, admin_headers):
     lst = client.get("/api/v1/shipments", headers=admin_headers).json()
     assert all("os_cost_amt" not in str(i) for i in lst["items"])
     assert all("charge_info_count" in i for i in lst["items"])
+    # 列表不返回应付/应收合计（合计只在详情页按币种给出）
+    assert all("cost_totals" not in i and "sell_totals" not in i
+               for i in lst["items"])
 
 
 def test_shipment_lifecycle_transitions(client, admin_headers, db,

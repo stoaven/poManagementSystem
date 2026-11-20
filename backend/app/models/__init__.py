@@ -26,7 +26,13 @@ class Shipment(Base, AuditMixin):
 
 
 class ChargeInfo(Base, AuditMixin):
-    """charge_info 表：一条记录同时承载应付侧与应收侧。"""
+    """charge_info 表：一条记录同时承载应付侧与应收侧。
+
+    字段口径来自上游费用信息表单（design D30）：
+    通用列 job_num / charge_code；
+    应付列 department / branch / cost_currency / os_cost_amt / creditor；
+    应收列 sell_currency / os_sell_amt / debtor。
+    """
 
     __tablename__ = "charge_info"
 
@@ -57,6 +63,8 @@ class OptionMixin(AuditMixin):
 
 
 class ChargeCode(OptionMixin, Base):
+    """费用代码选项表。"""
+
     __tablename__ = "charge_codes"
     __table_args__ = (UniqueConstraint("code", name="uk_charge_codes_code"),)
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)

@@ -149,6 +149,27 @@ def set_option_status(kind: str, option_id: int, body: OptionStatusIn,
     return _dto(o)
 
 
+def _reference_count(db: Session, kind: str, code: str) -> int:
+    """统计引用该选项的未删除费用信息条数。"""
+    col = getattr(ChargeInfo, CHARGE_COLUMN_MAP[kind])
+    return (
+        db.query(ChargeInfo)
+        .filter(col == code, ChargeInfo.status == 0)
+        .count()
+    )
+
+
+@router.get("/{kind}/{option_id}/references")
+def option_references(kind: str, option_id: int, _: User = Depends(require_admin),
+                       db: Session = Depends(get_db)):
+    """删除前的引用数量预检（spec：删除前告知引用条数）。"""
+    m = _resolve(kind)
+    o = db.get(m, option_id)
+    if not o or o.status != 0:
+        raise HTTPException(status_code=404, detail="该选项不存在")
+    return {"referenced": _reference_count(db, kind, o.code)}
+
+
 @router.delete("/{kind}/{option_id}")
 def delete_option(kind: str, option_id: int, admin: User = Depends(require_admin),
                   db: Session = Depends(get_db)):
@@ -157,12 +178,7 @@ def delete_option(kind: str, option_id: int, admin: User = Depends(require_admin
     o = db.get(m, option_id)
     if not o or o.status != 0:
         raise HTTPException(status_code=404, detail="该选项不存在")
-    col = CHARGE_COLUMN_MAP[kind]
-    ref_count = (
-        db.query(ChargeInfo)
-        .filter(getattr(ChargeInfo, col) == o.code, ChargeInfo.status == 0)
-        .count()
-    )
+    ref_count = _reference_count(db, kind, o.code)
     o.status = 1
     o.operator = admin.phone
     return {"ok": True, "referenced": ref_count}

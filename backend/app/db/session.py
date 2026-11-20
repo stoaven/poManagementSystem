@@ -16,12 +16,17 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False
 
 
 def get_db() -> Generator[Session, None, None]:
-    """FastAPI 依赖：一个请求一个事务。"""
+    """FastAPI 依赖：一个请求一个事务。
+
+    注意：except 分支必须重新抛出原异常——吞掉它会让 FastAPI 收不到响应，
+    表现为 500 且日志里只有 "No response object was returned"。
+    """
     db = SessionLocal()
     try:
         yield db
         db.commit()
     except Exception:
         db.rollback()
+        raise
     finally:
         db.close()

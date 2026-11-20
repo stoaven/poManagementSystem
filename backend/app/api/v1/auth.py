@@ -27,6 +27,7 @@ def login(body: LoginIn, db: Session = Depends(get_db)):
     return {
         "token": create_token(user.phone),
         "user": {
+            "id": user.id,
             "phone": user.phone,
             "username": user.username,
             "authority": user.authority,
@@ -36,4 +37,9 @@ def login(body: LoginIn, db: Session = Depends(get_db)):
 
 @router.get("/me")
 def me(user: User = Depends(get_current_user)):
-    return {"phone": user.phone, "username": user.username, "authority": user.authority}
+    return {
+        "id": user.id,
+        "phone": user.phone,
+        "username": user.username,
+        "authority": user.authority,
+    }
