@@ -267,46 +267,39 @@ poManagementSystem/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py              # FastAPI 应用装配、路由注册、CORS
-│   │   ├── cli.py               # create-admin、seed-options 等命令行入口
+│   │   ├── cli.py               # create-admin、seed-options、export-openapi
 │   │   ├── core/
 │   │   │   ├── config.py        # pydantic-settings，读 .env
 │   │   │   ├── security.py      # JWT 签发与校验（无密码哈希）
 │   │   │   └── deps.py          # 认证依赖、当前用户依赖、require_admin
 │   │   ├── db/
 │   │   │   ├── base.py          # DeclarativeBase
+│   │   │   ├── mixins.py        # 审计四件套 + users 模型
 │   │   │   └── session.py        # engine / sessionmaker / get_db
 │   │   ├── models/
-│   │   │   ├── user.py
-│   │   │   ├── shipment.py
-│   │   │   ├── charge_info.py
-│   │   │   └── options.py        # 六张选项表模型
+│   │   │   └── __init__.py       # shipments / charge_info + 六张选项表模型
 │   │   ├── schemas/
-│   │   │   ├── auth.py
-│   │   │   ├── user.py
-│   │   │   ├── shipment.py
-│   │   │   ├── charge_info.py
-│   │   │   ├── option.py
-│   │   │   └── common.py        # 分页响应、错误响应
+│   │   │   ├── auth.py           # 登录请求与响应
+│   │   │   ├── users.py          # 用户请求与响应
+│   │   │   ├── shipments.py      # 货运订单请求与响应
+│   │   │   ├── charge_info.py    # 费用信息请求与响应
+│   │   │   ├── options.py        # 选项请求与响应
+│   │   │   └── common.py         # 通用响应与审计字段
 │   │   ├── repositories/
-│   │   │   ├── user.py
 │   │   │   ├── shipment.py       # 查询助手：status 过滤 + 筛选条件 + 订单合计聚合
-│   │   │   ├── charge_info.py   # 查询助手：status 过滤 + 所属订单可见性 + 筛选条件
-│   │   │   └── option.py        # 六类选项共用的查询助手 + 字段映射
+│   │   │   ├── charge_info.py    # 查询助手：status 过滤 + 所属订单可见性
+│   │   │   └── option.py         # 六类选项的类别映射 + 取值三态校验
 │   │   ├── services/
-│   │   │   ├── auth_service.py
-│   │   │   ├── user_service.py
-│   │   │   ├── shipment_service.py # 状态机流转、货运订单号唯一性
-│   │   │   ├── charge_info_service.py
-│   │   │   ├── option_service.py
-│   │   │   └── summary_service.py # 按币种聚合
-│   │   └── api/v1/
+│   │   │   ├── user_service.py       # 手机号唯一、权限级别、不能停用自己
+│   │   │   ├── shipment_service.py   # 状态机流转、货运订单号唯一性
+│   │   │   ├── charge_info_service.py # 金额约束、取值校验、关联生成
+│   │   │   └── option_service.py      # code 不可改、软删除、启停用、引用计数
+│   │   └── api/v1/                  # 路由：只做取数与判权限
 │   │       ├── auth.py
 │   │       ├── users.py          # 用户管理（全部 admin-only）
 │   │       ├── shipments.py
 │   │       ├── charge_infos.py
-│   │       ├── options.py        # 六类选项共用一套路由（按 kind 分发）
-│   │       ├── summary.py
-│   │       └── meta.py
+│   │       └── options.py        # 六类选项共用一套路由（按 kind 分发）
 │   ├── alembic/
 │   ├── alembic.ini
 │   ├── tests/
