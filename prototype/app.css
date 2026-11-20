@@ -19,6 +19,8 @@
   --pay-wash:     #FCF2F5;
   --pay-rule:     #E9CBD5;
   --rec:          #1B6A85;
+  /* 应收金额：暗绿，与应收侧的青蓝区分开 */
+  --rec-amt:      #1F6B3F;
   --rec-wash:     #EFF6F8;
   --rec-rule:     #C2DAE1;
 
@@ -314,6 +316,7 @@ select.input { appearance: none; padding-right: 26px;
 .tbl-split tbody tr:hover td:last-child { background: #FAFBFA; }
 .tbl-split th, .tbl-split td { padding-left: 10px; padding-right: 10px; }
 .tbl-split td { white-space: nowrap; }
+/* 操作列：编辑/删除与「新增关联收费用」两行，别把链接裁掉 */
 .tbl-split td.c-desc { white-space: normal; min-width: 158px; }
 .tbl-split .amt-sub { white-space: nowrap; }
 
@@ -331,7 +334,7 @@ select.input { appearance: none; padding-right: 26px;
 .tbl-split td:nth-child(9) { border-left: 1px solid var(--rule); }
 
 .amt-pay { color: var(--pay); font-weight: 500; }
-.amt-rec { color: var(--rec); font-weight: 500; }
+.amt-rec { color: var(--rec-amt); font-weight: 500; }
 .amt { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .amt-line { display: flex; align-items: baseline; justify-content: flex-end; gap: 5px; }
 .amt-sub { display: block; font-size: 11px; color: var(--ink-3); font-family: var(--font-mono); margin-top: 2px; }

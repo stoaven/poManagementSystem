@@ -243,7 +243,7 @@ onMounted(load);
             <span class="mono">{{ row.branch }}</span>
           </template>
         </el-table-column>
-        <el-table-column width="100">
+        <el-table-column width="110">
           <template #header>
             <BilingualLabel label="应付币种" en="Cost Currency" />
           </template>
@@ -269,7 +269,7 @@ onMounted(load);
         </el-table-column>
 
         <!-- 应收带 -->
-        <el-table-column width="100">
+        <el-table-column width="110">
           <template #header>
             <BilingualLabel label="应收币种" en="Sell Currency" />
           </template>
@@ -311,12 +311,6 @@ onMounted(load);
           </template>
         </el-table-column>
       </el-table>
-
-      <div class="sheet-foot">
-        <span class="hint">
-          应付侧：部门 / 分支机构 / 币种 / 金额 / 税率 / 应付对象；应收侧：币种 / 金额 / 应收对象
-        </span>
-      </div>
     </div>
 
     <ChargeInfoDialog
@@ -404,10 +398,6 @@ onMounted(load);
   font-size: 15px;
   font-weight: 600;
 }
-.sheet-foot {
-  padding: 10px 18px;
-  border-top: 1px solid var(--rule);
-}
 .hint {
   font-size: 11.5px;
   color: var(--ink-3);
@@ -435,7 +425,7 @@ onMounted(load);
   font-weight: 500;
 }
 .amt-rec {
-  color: var(--rec);
+  color: var(--rec-amt);
   font-weight: 500;
 }
 .amt {

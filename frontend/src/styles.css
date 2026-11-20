@@ -12,6 +12,8 @@
   --pay-wash: #fcf2f5;
   --pay-rule: #e9cbd5;
   --rec: #1b6a85;
+  /* 应收金额：暗绿，与应收侧的青蓝区分开 */
+  --rec-amt: #1f6b3f;
   --rec-wash: #eff6f8;
   --rec-rule: #c2dae1;
   --ok: #2e7d5b;

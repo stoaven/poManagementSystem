@@ -27,11 +27,13 @@ const en = computed(() => props.en ?? fieldName(props.label));
 .bi-cn {
   font-size: 13px;
   color: var(--ink);
+  white-space: nowrap;
 }
 .bi-en {
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--ink-3);
   letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 </style>
