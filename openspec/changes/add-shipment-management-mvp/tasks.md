@@ -46,7 +46,7 @@
 - [x] 5.6 实现管理列表 `GET /api/v1/options/{kind}`（可按参数包含已停用与已软删除的项并标明状态）与候选列表 `GET /api/v1/options/{kind}/options`（仅启用未删除，支持关键字过滤），验证测试覆盖：管理列表能区分启用/停用/已删除三种状态、候选列表不含停用与已删除项、关键字过滤生效
 - [x] 5.7 实现一次取回六类候选的接口 `GET /api/v1/options/candidates`（返回六组候选及各字段标识），验证测试覆盖：响应含六组候选、该路由不会被 `{kind}` 抢占
 - [x] 5.8 把 admin-only 依赖挂到选项的**写**路由上（新增、编辑、删除、启停用），而候选列表与管理列表按各自权限开放，验证测试覆盖：普通用户调用选项写接口返回 403 且数据不变、普通用户可读候选列表
-- [x] 5.9 实现 CLI 种子脚本 `python -m app.cli seed-options`，预置费用代码 `DHLF`/`OCUC`/`OINSUR`、应付部门 `FIS`/`FES`/`FIA`/`FEA`、应付分支机构 `SHL`、币种 `USD`/`CNY`/`EUR`/`HKD`，验证脚本执行后对应候选列表中能查到这些项且应付对象与应收对象两张表为空
+- [x] 5.9 实现 CLI 种子脚本 `python -m app.cli seed-options`，预置费用代码 `DHLF`/`OCUC`/`OINSUR`、应付部门 `FIS`/`FES`/`FIA`/`FEA`、应付分支机构 `SHL`/`SHO`、币种 `USD`/`CNY`/`EUR`/`HKD`、应付对象 `CNSHL`/`MAERSK`/`中远海运物流`、应收对象 `CNSHO`/`中远海运集运`/`其它客户`，验证脚本执行后对应候选列表中能查到这些项（`SHO`/`CNSHL`/`CNSHO` 是关联收费用生成规则要写入的取值，缺了会导致生成的记录再编辑时被取值校验拒绝）
 
 ## 6. 货运订单状态机（`shipment-management`）
 

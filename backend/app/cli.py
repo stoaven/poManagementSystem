@@ -10,22 +10,30 @@ from app.db.session import SessionLocal
 from app.models import (
     BranchOption,
     ChargeCode,
+    Creditor,
     Currency,
+    Debtor,
     Department,
     User,
 )
 
+# 关联收费用的生成规则会写入 SHO / CNSHL / CNSHO 这三个取值，
+# 它们必须同时存在于选项表里，否则生成的记录再编辑保存时会被取值校验拒绝。
 SEED = {
     "charge_codes": ["DHLF", "OCUC", "OINSUR"],
     "departments": ["FIS", "FES", "FIA", "FEA"],
-    "branches": ["SHL"],
+    "branches": ["SHL", "SHO"],
     "currencies": ["USD", "CNY", "EUR", "HKD"],
+    "creditors": ["CNSHL", "MAERSK", "中远海运物流"],
+    "debtors": ["CNSHO", "中远海运集运", "其它客户"],
 }
 SEED_MODELS = {
     "charge_codes": ChargeCode,
     "departments": Department,
     "branches": BranchOption,
     "currencies": Currency,
+    "creditors": Creditor,
+    "debtors": Debtor,
 }
 
 

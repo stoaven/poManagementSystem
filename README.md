@@ -53,6 +53,10 @@ cp .env.example .env          # 按需修改 DATABASE_URL 与 JWT_SECRET
 .venv/bin/uvicorn app.main:app --reload
 ```
 
+`seed-options` 会预置费用代码、应付部门、应付分支机构（`SHL`/`SHO`）、币种、
+应付对象与应收对象六类初始选项。其中 `SHO`、`CNSHL`、`CNSHO` 是「关联收费用」
+生成规则要写入的取值，必须先存在于选项表里，生成的记录才能再次编辑保存。
+
 服务起在 `http://localhost:8000`，健康检查 `GET /health`，接口文档 `http://localhost:8000/docs`。
 
 ### 3. 前端
