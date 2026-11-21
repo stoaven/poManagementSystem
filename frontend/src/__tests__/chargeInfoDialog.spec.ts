@@ -92,8 +92,8 @@ describe("费用信息弹窗", () => {
     expect(createChargeInfo).not.toHaveBeenCalled();
   });
 
-  it("填齐两侧后提交完整载荷", async () => {
-    createChargeInfo.mockResolvedValue({ id: 5 });
+  it("填齐两侧后提交完整载荷（一次写入两条）", async () => {
+    createChargeInfo.mockResolvedValue([{ id: 5 }, { id: 6 }]);
     const w = mountDialog();
     await flushPromises();
 

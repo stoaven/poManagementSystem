@@ -120,8 +120,9 @@ def seeded_options(db):
         (ChargeCode, ["DHLF", "OCUC", "OINSUR"]),
         (Currency, ["USD", "CNY", "EUR", "HKD"]),
         (Department, ["FIS", "FES", "FIA", "FEA"]),
-        (Creditor, ["CNSHL", "MAERSK", "中远海运物流"]),
-        (Debtor, ["CNSHO", "中远海运集运", "其它客户"]),
+        # CNSHL 与 CNSHO 互为对家，新增费用信息时会按分支自动写入对方
+        (Creditor, ["CNSHL", "CNSHO", "MAERSK", "中远海运物流"]),
+        (Debtor, ["CNSHO", "CNSHL", "中远海运集运", "其它客户"]),
     ]:
         for code in codes:
             o = m(code=code, name=None, is_active=True, status=0,

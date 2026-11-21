@@ -6,6 +6,7 @@ OpenAPI 契约因此同时覆盖请求与响应。
 from app.schemas.auth import LoginIn, LoginOut, MeOut, UserBrief
 from app.schemas.charge_info import (
     ChargeInfoIn,
+    ChargeInfoListOut,
     ChargeInfoOut,
     ChargeInfoPatch,
 )
@@ -32,6 +33,7 @@ __all__ = [
     "AuditOut",
     "AuthorityPatch",
     "ChargeInfoIn",
+    "ChargeInfoListOut",
     "ChargeInfoOut",
     "ChargeInfoPatch",
     "LoginIn",

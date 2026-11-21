@@ -450,6 +450,11 @@
       </div>
 
       <p class="note">应付与应收两侧的币种各自独立，不做汇率折算。</p>
+      <p class="note">
+        保存后会写入两条：一条记在填写的分支机构上（应收侧由应付侧推出），
+        一条记在镜像分支上（应付侧由前一条推出、应收侧用填写的值）。
+        SHL 与 SHO 互为镜像，对家单位 SHL↔CNSHO、SHO↔CNSHL。
+      </p>
     </div>
 
     <footer class="modal-foot">

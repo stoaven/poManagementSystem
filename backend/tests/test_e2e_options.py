@@ -41,7 +41,8 @@ def test_option_lifecycle_from_candidate_to_delete(client, admin_user, seeded_op
     r = client.post(f"/api/v1/shipments/{sid}/charge-infos", headers=headers,
                     json=_charge_payload(department="FNEW"))
     assert r.status_code == 201, r.text
-    cid = r.json()["id"]
+    # 一次写入两条，两条的部门都是 FNEW
+    cid = r.json()["items"][0]["id"]
 
     # 3. 停用后它从候选列表消失
     r = client.patch(f"/api/v1/options/departments/{opt_id}/status",
@@ -61,12 +62,12 @@ def test_option_lifecycle_from_candidate_to_delete(client, admin_user, seeded_op
     r = client.get(f"/api/v1/options/departments/{opt_id}/references",
                    headers=headers)
     assert r.status_code == 200
-    assert r.json()["referenced"] == 1
+    assert r.json()["referenced"] == 2
 
     # 6. 删除后，引用它的记录再保存被拒绝
     r = client.delete(f"/api/v1/options/departments/{opt_id}", headers=headers)
     assert r.status_code == 200
-    assert r.json()["referenced"] == 1
+    assert r.json()["referenced"] == 2
 
     r = client.patch(f"/api/v1/charge-infos/{cid}", headers=headers,
                      json={"department": "FNEW", "os_cost_amt": "1600.00"})
@@ -97,7 +98,8 @@ def test_admin_list_carries_reference_count(client, admin_user, seeded_options):
 
     listed = client.get("/api/v1/options/currencies", headers=headers).json()
     counts = {o["code"]: o["referenced"] for o in listed["items"]}
-    # USD 出现在应付侧、CNY 出现在应收侧，两者都应计到引用数上
-    assert counts.get("USD") == 1
+    # 一次写入两条：A 的应付侧与应收侧都是 USD，B 的应付侧也是 USD，
+    # 所以 USD 被引用 3 次；CNY 只出现在 B 的应收侧，被引用 1 次
+    assert counts.get("USD") == 3
     assert counts.get("CNY") == 1
     assert counts.get("EUR") == 0

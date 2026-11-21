@@ -43,10 +43,7 @@ class ChargeInfoPatch(BaseModel):
 
 
 class ChargeInfoOut(AuditOut):
-    """费用信息记录。
-
-    关联生成的记录，未由规则填写的一侧为 None，用户补齐后才是完整记录。
-    """
+    """费用信息记录。"""
 
     id: int
     shipment_id: int
@@ -60,3 +57,9 @@ class ChargeInfoOut(AuditOut):
     sell_currency: Optional[str] = None
     os_sell_amt: Optional[str] = None
     debtor: Optional[str] = None
+
+
+class ChargeInfoListOut(BaseModel):
+    """新增费用信息后的响应：一次写入的两条记录。"""
+
+    items: list[ChargeInfoOut] = []

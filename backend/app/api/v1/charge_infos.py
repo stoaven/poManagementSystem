@@ -13,6 +13,7 @@ from app.repositories import charge_info as charge_info_repo
 from app.repositories import shipment as shipment_repo
 from app.schemas.charge_info import (
     ChargeInfoIn,
+    ChargeInfoListOut,
     ChargeInfoOut,
     ChargeInfoPatch,
 )
@@ -30,15 +31,16 @@ def _get_line_or_404(db: Session, line_id: int):
 
 
 @router.post("/shipments/{sid}/charge-infos", status_code=201,
-             response_model=ChargeInfoOut)
+             response_model=ChargeInfoListOut)
 def create_charge_info(sid: int, body: ChargeInfoIn,
                        user: User = Depends(get_current_user),
                        db: Session = Depends(get_db)):
+    """新增费用信息：一次写入两条——A（应付侧）与 B（镜像分支那条）。"""
     s = shipment_repo.get_active(db, sid)
     if not s:
         raise HTTPException(status_code=404, detail="该货运订单不存在")
-    c = svc.create_line(db, s, body.model_dump(), user)
-    return svc.line_to_dict(c)
+    lines = svc.create_pair(db, s, body.model_dump(), user)
+    return {"items": [svc.line_to_dict(c) for c in lines]}
 
 
 @router.patch("/charge-infos/{line_id}", response_model=ChargeInfoOut)

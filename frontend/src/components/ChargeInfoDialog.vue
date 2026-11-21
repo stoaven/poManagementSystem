@@ -148,8 +148,8 @@ async function onSave() {
       await updateChargeInfo(props.chargeInfo.id, payload);
       ElMessage.success("已保存");
     } else {
-      await createChargeInfo(props.shipmentId, payload);
-      ElMessage.success("已新增费用信息");
+      const created = await createChargeInfo(props.shipmentId, payload);
+      ElMessage.success(`已新增 ${created.length} 条费用信息`);
     }
     visible.value = false;
     emit("saved");

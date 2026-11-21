@@ -20,15 +20,19 @@ export async function fetchShipment(id: number): Promise<ShipmentDetail> {
   return data;
 }
 
+/**
+ * 新增费用信息：一次写入两条——A（应付侧那条）与 B（镜像分支那条）。
+ * 返回值就是这两条记录。
+ */
 export async function createChargeInfo(
   shipmentId: number,
   body: ChargeInfoIn,
-): Promise<ChargeInfo> {
-  const { data } = await client.post<ChargeInfo>(
+): Promise<ChargeInfo[]> {
+  const { data } = await client.post<{ items: ChargeInfo[] }>(
     `/shipments/${shipmentId}/charge-infos`,
     body,
   );
-  return data;
+  return data.items;
 }
 
 export async function updateChargeInfo(

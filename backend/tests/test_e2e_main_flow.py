@@ -42,13 +42,15 @@ def test_main_flow_login_to_soft_delete(client, admin_user, seeded_options):
     assert client.post("/api/v1/shipments", headers=headers,
                        json={"shipment_num": "sh-e2e-0001"}).status_code == 409
 
-    # 3. 录入一条费用信息：任务码自动等于所属订单号
+    # 3. 录入一条费用信息：一次写入两条，任务码自动等于所属订单号
     r = client.post(f"/api/v1/shipments/{sid}/charge-infos", headers=headers,
                     json=_charge_payload())
     assert r.status_code == 201, r.text
-    line = r.json()
-    assert line["job_num"] == "SH-E2E-0001"
-    cid = line["id"]
+    lines = r.json()["items"]
+    assert len(lines) == 2
+    for line in lines:
+        assert line["job_num"] == "SH-E2E-0001"
+    cids = [line["id"] for line in lines]
 
     # 4. 分类字段打错值被后端拒绝
     r = client.post(f"/api/v1/shipments/{sid}/charge-infos", headers=headers,
@@ -60,18 +62,23 @@ def test_main_flow_login_to_soft_delete(client, admin_user, seeded_options):
     r = client.get(f"/api/v1/shipments/{sid}", headers=headers)
     assert r.status_code == 200
     detail = r.json()
-    assert len(detail["charge_info"]) == 1
-    line = detail["charge_info"][0]
-    assert line["cost_currency"] == "USD"
-    assert line["os_cost_amt"] == "1200.00"
-    assert line["sell_currency"] == "CNY"
-    assert line["os_sell_amt"] == "8600.00"
+    assert len(detail["charge_info"]) == 2
+    a = next(l for l in detail["charge_info"] if l["branch"] == "SHL")
+    assert a["cost_currency"] == "USD"
+    assert a["os_cost_amt"] == "1200.00"
+    assert a["sell_currency"] == "USD"      # 由应付侧推出
+    assert a["os_sell_amt"] == "1200.00"
+    assert a["debtor"] == "CNSHO"
+    b = next(l for l in detail["charge_info"] if l["branch"] == "SHO")
+    assert b["sell_currency"] == "CNY"
+    assert b["os_sell_amt"] == "8600.00"
     assert "cost_totals" not in detail
     assert "sell_totals" not in detail
 
-    # 6. 软删除该条费用信息后，详情里不再出现
-    assert client.delete(f"/api/v1/charge-infos/{cid}",
-                         headers=headers).status_code == 200
+    # 6. 软删掉这两条费用信息后，详情里不再出现
+    for cid in cids:
+        assert client.delete(f"/api/v1/charge-infos/{cid}",
+                             headers=headers).status_code == 200
     detail = client.get(f"/api/v1/shipments/{sid}", headers=headers).json()
     assert detail["charge_info"] == []
 

@@ -272,7 +272,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create Charge Info */
+        /**
+         * Create Charge Info
+         * @description 新增费用信息：一次写入两条——A（应付侧）与 B（镜像分支那条）。
+         */
         post: operations["create_charge_info_api_v1_shipments__sid__charge_infos_post"];
         delete?: never;
         options?: never;
@@ -441,10 +444,19 @@ export interface components {
             sell_currency: string;
         };
         /**
+         * ChargeInfoListOut
+         * @description 新增费用信息后的响应：一次写入的两条记录。
+         */
+        ChargeInfoListOut: {
+            /**
+             * Items
+             * @default []
+             */
+            items: components["schemas"]["ChargeInfoOut"][];
+        };
+        /**
          * ChargeInfoOut
          * @description 费用信息记录。
-         *
-         *     关联生成的记录，未由规则填写的一侧为 None，用户补齐后才是完整记录。
          */
         ChargeInfoOut: {
             /** Branch */
@@ -1459,7 +1471,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ChargeInfoOut"];
+                    "application/json": components["schemas"]["ChargeInfoListOut"];
                 };
             };
             /** @description Validation Error */

@@ -294,13 +294,66 @@ def _payload(**over):
     return base
 
 
-def test_charge_info_create_and_job_num(client, admin_headers, seeded_shipment):
+def test_charge_info_create_writes_pair(client, admin_headers, seeded_shipment):
+    """新增一条费用信息会写入两条：A（应付侧）与 B（镜像分支那条）。"""
     r = client.post(f"/api/v1/shipments/{seeded_shipment.id}/charge-infos",
                     headers=admin_headers, json=_payload())
-    assert r.status_code == 201
-    body = r.json()
-    assert body["job_num"] == seeded_shipment.shipment_num  # 自动带出
-    # 客户端传入的 job_num 被忽略（请求体没有 job_num 字段本身）
+    assert r.status_code == 201, r.text
+    items = r.json()["items"]
+    assert len(items) == 2
+
+    a, b = items
+    # A：页面填的应付侧 + 推出的应收侧
+    assert a["charge_code"] == "DHLF"
+    assert a["department"] == "FIS"
+    assert a["branch"] == "SHL"
+    assert a["cost_currency"] == "USD"
+    assert a["os_cost_amt"] == "1200.00"
+    assert a["creditor"] == "CNSHL"
+    assert a["sell_currency"] == "USD"      # = A.cost_currency
+    assert a["os_sell_amt"] == "1200.00"   # = A.os_cost_amt
+    assert a["debtor"] == "CNSHO"          # SHL 的对家
+
+    # B：由 A 推出的应付侧 + 页面填的应收侧
+    assert b["charge_code"] == "DHLF"
+    assert b["department"] == "FIS"
+    assert b["branch"] == "SHO"             # SHL 的镜像分支
+    assert b["cost_currency"] == "USD"      # = A.sell_currency
+    assert b["os_cost_amt"] == "1200.00"   # = A.os_sell_amt
+    assert b["creditor"] == "CNSHO"         # 对家单位
+    assert b["sell_currency"] == "CNY"      # 页面填写
+    assert b["os_sell_amt"] == "8600.00"   # 页面填写
+    assert b["debtor"] == "CNSHO"           # 页面填写
+
+    # 两条的任务码都等于所属订单号
+    assert a["job_num"] == seeded_shipment.shipment_num
+    assert b["job_num"] == seeded_shipment.shipment_num
+
+
+def test_charge_info_create_sho_branch(client, admin_headers, seeded_shipment):
+    """分支为 SHO 时，镜像关系反过来：A 的对家是 CNSHL，B 的分支是 SHL。"""
+    r = client.post(f"/api/v1/shipments/{seeded_shipment.id}/charge-infos",
+                    headers=admin_headers,
+                    json=_payload(branch="SHO", creditor="CNSHO",
+                                  debtor="CNSHO"))
+    assert r.status_code == 201, r.text
+    a, b = r.json()["items"]
+    assert a["branch"] == "SHO"
+    assert a["debtor"] == "CNSHL"
+    assert b["branch"] == "SHL"
+    assert b["creditor"] == "CNSHL"
+
+
+def test_charge_info_create_rejects_unknown_branch(client, admin_headers,
+                                                    seeded_shipment):
+    """没有镜像分支的分支直接拒绝，不写入任何记录。"""
+    r = client.post(f"/api/v1/shipments/{seeded_shipment.id}/charge-infos",
+                    headers=admin_headers, json=_payload(branch="XXX"))
+    assert r.status_code == 422
+    assert "SHL" in r.json()["detail"]
+    detail = client.get(f"/api/v1/shipments/{seeded_shipment.id}",
+                        headers=admin_headers).json()
+    assert detail["charge_info"] == []
 
 
 def test_charge_info_missing_side_rejected(client, admin_headers, seeded_shipment):
