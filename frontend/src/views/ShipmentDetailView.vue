@@ -199,7 +199,7 @@ watch(() => route.params.id, load);
         </el-table-column>
 
         <!-- 应付带 -->
-        <el-table-column width="90">
+        <el-table-column width="78">
           <template #header>
             <BilingualLabel label="部门" en="Department" />
           </template>
@@ -207,7 +207,7 @@ watch(() => route.params.id, load);
             <span class="mono">{{ row.department }}</span>
           </template>
         </el-table-column>
-        <el-table-column width="100">
+        <el-table-column width="90">
           <template #header>
             <BilingualLabel label="分支机构" en="Branch" />
           </template>
@@ -223,7 +223,7 @@ watch(() => route.params.id, load);
             <span class="mono">{{ row.cost_currency ?? "—" }}</span>
           </template>
         </el-table-column>
-        <el-table-column width="120" align="left">
+        <el-table-column width="114" align="left">
           <template #header>
             <BilingualLabel label="应付金额" en="OS Cost Amt" />
           </template>
@@ -249,7 +249,7 @@ watch(() => route.params.id, load);
             <span class="mono">{{ row.sell_currency ?? "—" }}</span>
           </template>
         </el-table-column>
-        <el-table-column width="120" align="left">
+        <el-table-column width="114" align="left">
           <template #header>
             <BilingualLabel label="应收金额" en="OS Sell Amt" />
           </template>
@@ -266,7 +266,7 @@ watch(() => route.params.id, load);
           </template>
         </el-table-column>
 
-        <el-table-column width="230" align="right">
+        <el-table-column width="330" align="right">
           <template #header>
             <BilingualLabel label="操作" en="Actions" />
           </template>
