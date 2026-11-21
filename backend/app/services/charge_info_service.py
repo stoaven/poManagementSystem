@@ -32,7 +32,9 @@ MAX_AMT = Decimal("999999999999.99")
 # 当前分支机构 -> 镜像分支
 BRANCH_MIRROR = {"SHL": "SHO", "SHO": "SHL"}
 
-# 当前分支机构 -> 对家单位（A 的应收对象，也是 B 的应付对象）
+# 当前分支机构 -> 对家单位。
+# 每条记录的「对家」由它**自己所在的分支**决定：
+# A 的应收对象看 A.branch，B 的应付对象看 B.branch。
 COUNTERPARTY = {"SHL": "CNSHO", "SHO": "CNSHL"}
 
 # 六个选项类别与费用信息字段的对应（category field -> option kind）
@@ -124,13 +126,15 @@ def build_pair(data: dict) -> Tuple[dict, dict]:
         "debtor": counterpart,
     }
     # B：由 A 推出的应付侧 + 页面填的应收侧
+    b_branch = BRANCH_MIRROR[branch]
     b = {
         "charge_code": a["charge_code"],
         "department": a["department"],
-        "branch": BRANCH_MIRROR[branch],
+        "branch": b_branch,
         "cost_currency": a["sell_currency"],
         "os_cost_amt": a["os_sell_amt"],
-        "creditor": counterpart,
+        # 对家单位按 B 自己的分支定：在 SHL 则对家 CNSHO，在 SHO 则 CNSHL
+        "creditor": COUNTERPARTY[b_branch],
         "sell_currency": data["sell_currency"],
         "os_sell_amt": data["os_sell_amt"],
         "debtor": data["debtor"],

@@ -320,12 +320,15 @@ def test_charge_info_create_writes_pair(client, admin_headers, seeded_shipment):
     assert b["branch"] == "SHO"             # SHL 的镜像分支
     assert b["cost_currency"] == "USD"      # = A.sell_currency
     assert b["os_cost_amt"] == "1200.00"   # = A.os_sell_amt
-    assert b["creditor"] == "CNSHO"         # 对家单位
+    assert b["creditor"] == "CNSHL"         # 对家单位：按 B 自己的分支（SHO）定
     assert b["sell_currency"] == "CNY"      # 页面填写
     assert b["os_sell_amt"] == "8600.00"   # 页面填写
     assert b["debtor"] == "CNSHO"           # 页面填写
-    # 不变量：对家单位——A 的应收对象与 B 的应付对象是同一个
-    assert b["creditor"] == a["debtor"] == "CNSHO"
+    # 不变量：对家单位由记录**自己所在的分支**决定——
+    # A 在 SHL，对家 CNSHO；B 在 SHO，对家 CNSHL
+    assert a["debtor"] == "CNSHO"
+    assert b["creditor"] == "CNSHL"
+    assert a["debtor"] != b["creditor"]
 
     # 两条的任务码都等于所属订单号
     assert a["job_num"] == seeded_shipment.shipment_num
@@ -333,7 +336,7 @@ def test_charge_info_create_writes_pair(client, admin_headers, seeded_shipment):
 
 
 def test_charge_info_create_sho_branch(client, admin_headers, seeded_shipment):
-    """分支为 SHO 时，镜像关系反过来：A 的对家是 CNSHL，B 的分支是 SHL。"""
+    """分支为 SHO 时，镜像关系反过来：A 的对家是 CNSHL，B 的对家是 CNSHO。"""
     r = client.post(f"/api/v1/shipments/{seeded_shipment.id}/charge-infos",
                     headers=admin_headers,
                     json=_payload(branch="SHO", creditor="CNSHO",
@@ -343,9 +346,11 @@ def test_charge_info_create_sho_branch(client, admin_headers, seeded_shipment):
     assert a["branch"] == "SHO"
     assert a["debtor"] == "CNSHL"
     assert b["branch"] == "SHL"
-    assert b["creditor"] == "CNSHL"
-    # 不变量：对家单位——A 的应收对象与 B 的应付对象是同一个
-    assert b["creditor"] == a["debtor"] == "CNSHL"
+    assert b["creditor"] == "CNSHO"
+    # 不变量：对家单位由记录**自己所在的分支**决定
+    assert a["debtor"] == "CNSHL"
+    assert b["creditor"] == "CNSHO"
+    assert a["debtor"] != b["creditor"]
 
 
 def test_charge_info_create_rejects_unknown_branch(client, admin_headers,
