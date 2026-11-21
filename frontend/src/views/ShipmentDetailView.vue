@@ -189,7 +189,7 @@ watch(() => route.params.id, load);
       </div>
 
       <el-table :data="detail?.charge_info ?? []" style="width: 100%">
-        <el-table-column width="120">
+        <el-table-column min-width="100">
           <template #header>
             <BilingualLabel label="费用代码" en="Charge Code" />
           </template>
@@ -199,7 +199,7 @@ watch(() => route.params.id, load);
         </el-table-column>
 
         <!-- 应付带 -->
-        <el-table-column width="95">
+        <el-table-column min-width="88">
           <template #header>
             <BilingualLabel label="部门" en="Department" />
           </template>
@@ -207,7 +207,7 @@ watch(() => route.params.id, load);
             <span class="mono">{{ row.department }}</span>
           </template>
         </el-table-column>
-        <el-table-column width="105">
+        <el-table-column min-width="80">
           <template #header>
             <BilingualLabel label="分支机构" en="Branch" />
           </template>
@@ -215,7 +215,7 @@ watch(() => route.params.id, load);
             <span class="mono">{{ row.branch }}</span>
           </template>
         </el-table-column>
-        <el-table-column width="115" align="left">
+        <el-table-column min-width="106" align="left">
           <template #header>
             <BilingualLabel label="应付币种" en="Cost Currency" />
           </template>
@@ -223,7 +223,7 @@ watch(() => route.params.id, load);
             <span class="mono">{{ row.cost_currency ?? "—" }}</span>
           </template>
         </el-table-column>
-        <el-table-column width="130" align="left">
+        <el-table-column min-width="100" align="left">
           <template #header>
             <BilingualLabel label="应付金额" en="OS Cost Amt" />
           </template>
@@ -231,7 +231,7 @@ watch(() => route.params.id, load);
             <span class="amt amt-pay">{{ displayMoney(row.os_cost_amt) }}</span>
           </template>
         </el-table-column>
-        <el-table-column width="150">
+        <el-table-column min-width="120">
           <template #header>
             <BilingualLabel label="应付对象" en="Creditor" />
           </template>
@@ -241,7 +241,7 @@ watch(() => route.params.id, load);
         </el-table-column>
 
         <!-- 应收带 -->
-        <el-table-column width="115" align="left">
+        <el-table-column min-width="106" align="left">
           <template #header>
             <BilingualLabel label="应收币种" en="Sell Currency" />
           </template>
@@ -249,7 +249,7 @@ watch(() => route.params.id, load);
             <span class="mono">{{ row.sell_currency ?? "—" }}</span>
           </template>
         </el-table-column>
-        <el-table-column width="130" align="left">
+        <el-table-column min-width="113" align="left">
           <template #header>
             <BilingualLabel label="应收金额" en="OS Sell Amt" />
           </template>
@@ -257,7 +257,7 @@ watch(() => route.params.id, load);
             <span class="amt amt-rec">{{ displayMoney(row.os_sell_amt) }}</span>
           </template>
         </el-table-column>
-        <el-table-column width="140">
+        <el-table-column min-width="120">
           <template #header>
             <BilingualLabel label="应收对象" en="Debtor" />
           </template>
@@ -266,7 +266,7 @@ watch(() => route.params.id, load);
           </template>
         </el-table-column>
 
-        <el-table-column width="150" align="right">
+        <el-table-column min-width="110" align="right">
           <template #header>
             <BilingualLabel label="操作" en="Actions" />
           </template>
