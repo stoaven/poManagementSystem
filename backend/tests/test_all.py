@@ -324,6 +324,8 @@ def test_charge_info_create_writes_pair(client, admin_headers, seeded_shipment):
     assert b["sell_currency"] == "CNY"      # 页面填写
     assert b["os_sell_amt"] == "8600.00"   # 页面填写
     assert b["debtor"] == "CNSHO"           # 页面填写
+    # 不变量：对家单位——A 的应收对象与 B 的应付对象是同一个
+    assert b["creditor"] == a["debtor"] == "CNSHO"
 
     # 两条的任务码都等于所属订单号
     assert a["job_num"] == seeded_shipment.shipment_num
@@ -342,6 +344,8 @@ def test_charge_info_create_sho_branch(client, admin_headers, seeded_shipment):
     assert a["debtor"] == "CNSHL"
     assert b["branch"] == "SHL"
     assert b["creditor"] == "CNSHL"
+    # 不变量：对家单位——A 的应收对象与 B 的应付对象是同一个
+    assert b["creditor"] == a["debtor"] == "CNSHL"
 
 
 def test_charge_info_create_rejects_unknown_branch(client, admin_headers,
