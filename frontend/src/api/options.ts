@@ -2,6 +2,7 @@ import client from "./client";
 import type {
   OptionCandidatesOut,
   OptionDeleteOut,
+  OptionImportOut,
   OptionIn,
   OptionOut,
   ReferencesOut,
@@ -89,6 +90,24 @@ export async function setOptionActive(
   const { data } = await client.patch(`/options/${kind}/${id}/status`, {
     is_active: isActive,
   });
+  return data;
+}
+
+/**
+ * 批量导入：上传表头为 code 与 name 的 CSV，按 code upsert
+ * （已存在则更新名称，不存在则新增）。
+ */
+export async function importOptions(
+  kind: OptionKind,
+  file: File,
+): Promise<OptionImportOut> {
+  const form = new FormData();
+  form.append("file", file);
+  // FormData 的 Content-Type 交给浏览器设，不能手动写死 boundary
+  const { data } = await client.post<OptionImportOut>(
+    `/options/${kind}/import`,
+    form,
+  );
   return data;
 }
 

@@ -7,6 +7,7 @@ import UserManagementView from "@/views/UserManagementView.vue";
 import { useAuthStore } from "@/stores/auth";
 
 const listOptions = vi.fn();
+const importOptions = vi.fn();
 const createOption = vi.fn();
 const updateOption = vi.fn();
 const deleteOption = vi.fn();
@@ -26,6 +27,7 @@ vi.mock("@/api/options", async () => {
     setOptionActive: (...args: unknown[]) => setOptionActive(...args),
     fetchOptionReferences: (...args: unknown[]) =>
       fetchOptionReferences(...args),
+    importOptions: (...args: unknown[]) => importOptions(...args),
   };
 });
 
@@ -156,6 +158,34 @@ describe("选项维护页", () => {
     expect(confirm.mock.calls[0][0]).toContain("12");
     expect(deleteOption).toHaveBeenCalledWith("charge_codes", 1);
     confirm.mockRestore();
+  });
+
+  it("选中 CSV 后调用批量导入并刷新列表", async () => {
+    listOptions.mockResolvedValue([OPTION]);
+    importOptions.mockResolvedValue({
+      created: 2,
+      updated: 1,
+      skipped: 0,
+      skipped_codes: [],
+      errors: [],
+      total: 3,
+    });
+    const w = mountView(OptionListView);
+    await flushPromises();
+    listOptions.mockClear();
+
+    // 触发隐藏的 file input 的 change
+    const input = w.find('input[type="file"]');
+    expect(input.exists()).toBe(true);
+    const file = new File(["code,name\nA,甲"], "o.csv", { type: "text/csv" });
+    Object.defineProperty(input.element, "files", { value: [file] });
+    await input.trigger("change");
+    await flushPromises();
+
+    const importer = importOptions as unknown as ReturnType<typeof vi.fn>;
+    expect(importer).toHaveBeenCalledWith("charge_codes", file);
+    // 导入完重新取数
+    expect(listOptions).toHaveBeenCalledWith("charge_codes");
   });
 
   it("用户取消删除就不删", async () => {

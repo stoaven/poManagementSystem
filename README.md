@@ -101,6 +101,7 @@ npm run dev
 | GET | `/options/{kind}` | admin | 选项管理列表（**默认已过滤掉已软删除的项**，含已停用项，附被引用条数） |
 | GET | `/options/{kind}/options` | 登录 | 候选列表（仅启用未删除，支持关键字过滤） |
 | POST | `/options/{kind}` | admin | 新增选项 |
+| POST | `/options/{kind}/import` | admin | 批量导入选项（上传 code/name 的 CSV，按 code upsert） |
 | PATCH | `/options/{kind}/{id}` | admin | 改名称（code 创建后不可修改） |
 | PATCH | `/options/{kind}/{id}/status` | admin | 启用/停用 |
 | GET | `/options/{kind}/{id}/references` | admin | 删除前的引用数量预检 |
@@ -146,6 +147,18 @@ npm run dev
 | 货运订单与费用信息的增删改查 | 可 | 可 |
 
 权限在每次请求时从数据库实时读取，因此调整权限或停用账号立即生效。
+
+## 批量导入选项
+
+选项维护页有「批量导入」按钮，上传一份 CSV 即可批量写入**当前这一类**选项
+（六类都支持）。CSV 要求：
+
+- 表头两列：`code` 与 `name`（列序不限、大小写不敏感，UTF-8 编码，可带 BOM）
+- 一行一个选项，`code` 不能为空
+
+导入按 `code` **upsert**：已存在的 `code` 更新它的名称，不存在的 `code` 新增。
+已软删除的 `code` 会被**跳过**（不复活），导入结果里会报告跳过了几条。
+导入完页面会提示「新增 X 条，更新 Y 条」，有问题的行单独提示。
 
 ## 导出 Excel
 

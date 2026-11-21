@@ -5,6 +5,7 @@ import {
   createOption,
   deleteOption,
   fetchOptionReferences,
+  importOptions,
   listOptions,
   OPTION_KIND_LABELS,
   OPTION_KIND_LABELS_EN,
@@ -24,6 +25,43 @@ const dialogVisible = ref(false);
 const editingId = ref<number | null>(null);
 const form = ref({ code: "", name: "" });
 const saving = ref(false);
+const importing = ref(false);
+const fileInput = ref<HTMLInputElement | null>(null);
+
+/** 触发文件选择框（隐藏的 input 才是真正选文件的地方）。 */
+function pickFile() {
+  fileInput.value?.click();
+}
+
+/**
+ * 选中 CSV 后批量导入：表头必须是 code 与 name。
+ * 已存在的 code 更新名称，不存在的 code 新增。
+ */
+async function onFilePicked(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) {
+    return;
+  }
+  importing.value = true;
+  try {
+    const r = await importOptions(kind.value, file);
+    const parts = [`新增 ${r.created} 条`, `更新 ${r.updated} 条`];
+    if (r.skipped) {
+      parts.push(`跳过 ${r.skipped} 条（已删除的 code）`);
+    }
+    ElMessage.success(`导入完成：${parts.join("，")}`);
+    if (r.errors.length) {
+      ElMessage.warning(`${r.errors.length} 行有问题，例如：${r.errors[0]}`);
+    }
+    load();
+  } catch (e) {
+    ElMessage.error((e as Error).message);
+  } finally {
+    importing.value = false;
+    input.value = "";   // 允许连续选同一个文件
+  }
+}
 
 async function load() {
   loading.value = true;
@@ -133,7 +171,21 @@ onMounted(load);
         <p class="page-meta">六类可选值 · 仅管理员可修改</p>
       </div>
       <div class="page-actions">
+        <el-button
+          title="上传表头为 code 与 name 的 CSV，按 code 批量新增或更新"
+          :loading="importing"
+          @click="pickFile"
+        >
+          批量导入
+        </el-button>
         <el-button type="primary" @click="openCreate">新增选项</el-button>
+        <input
+          ref="fileInput"
+          type="file"
+          accept=".csv,text/csv"
+          hidden
+          @change="onFilePicked"
+        />
       </div>
     </header>
 

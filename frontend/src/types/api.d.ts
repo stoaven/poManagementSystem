@@ -108,7 +108,11 @@ export interface paths {
         };
         /**
          * Admin List
-         * @description 管理列表（admin-only）。include_deleted=True 时包含已删除项。
+         * @description 管理列表（admin-only）。
+         *
+         *     默认**已软删除的项在服务端就被过滤掉**，页面上看不到被删除的数据；
+         *     只有显式要求时（include_deleted=True）才连同已删除项一起返回，
+         *     供需要追溯删除记录的场合使用。
          *
          *     每一项附带被引用它未删除费用信息条数，供界面上直接显示。
          */
@@ -116,6 +120,28 @@ export interface paths {
         put?: never;
         /** Create Option */
         post: operations["create_option_api_v1_options__kind__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/options/{kind}/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Options
+         * @description 批量导入选项项：上传表头为 code 与 name 的 CSV，按 code upsert。
+         *
+         *     code 已存在则更新名称，不存在则新增；已软删除的 code 会被跳过。
+         */
+        post: operations["import_options_api_v1_options__kind__import_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -277,6 +303,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/shipments/{sid}/charge-infos/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Charge Infos
+         * @description 把该货运订单下的全部费用信息导出为 Excel（英文表头）。
+         */
+        get: operations["export_charge_infos_api_v1_shipments__sid__charge_infos_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/shipments/{sid}/complete": {
         parameters: {
             query?: never;
@@ -385,6 +431,14 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** Body_import_options_api_v1_options__kind__import_post */
+        Body_import_options_api_v1_options__kind__import_post: {
+            /**
+             * File
+             * Format: binary
+             */
+            file: string;
+        };
         /**
          * ChargeInfoDraftOut
          * @description 关联收费用的预填草稿：服务端按规则算好，但不落库。
@@ -570,6 +624,33 @@ export interface components {
             ok: boolean;
             /** Referenced */
             referenced: number;
+        };
+        /**
+         * OptionImportOut
+         * @description 批量导入的结果统计。
+         */
+        OptionImportOut: {
+            /** Created */
+            created: number;
+            /**
+             * Errors
+             * @default []
+             */
+            errors: string[];
+            /** Skipped */
+            skipped: number;
+            /**
+             * Skipped Codes
+             * @default []
+             */
+            skipped_codes: string[];
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+            /** Updated */
+            updated: number;
         };
         /**
          * OptionIn
@@ -1046,6 +1127,41 @@ export interface operations {
             };
         };
     };
+    import_options_api_v1_options__kind__import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_import_options_api_v1_options__kind__import_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OptionImportOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     candidate_list_api_v1_options__kind__options_get: {
         parameters: {
             query?: {
@@ -1432,6 +1548,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChargeInfoOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_charge_infos_api_v1_shipments__sid__charge_infos_export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sid: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

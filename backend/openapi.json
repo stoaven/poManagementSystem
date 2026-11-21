@@ -1,6 +1,20 @@
 {
   "components": {
     "schemas": {
+      "Body_import_options_api_v1_options__kind__import_post": {
+        "properties": {
+          "file": {
+            "format": "binary",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_import_options_api_v1_options__kind__import_post",
+        "type": "object"
+      },
       "ChargeInfoDraftOut": {
         "description": "关联收费用的预填草稿：服务端按规则算好，但不落库。\n\n用户在弹窗里补齐未填写的一侧后点确定，才通过创建接口真正写入。",
         "properties": {
@@ -545,6 +559,51 @@
           "referenced"
         ],
         "title": "OptionDeleteOut",
+        "type": "object"
+      },
+      "OptionImportOut": {
+        "description": "批量导入的结果统计。",
+        "properties": {
+          "created": {
+            "title": "Created",
+            "type": "integer"
+          },
+          "errors": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "skipped": {
+            "title": "Skipped",
+            "type": "integer"
+          },
+          "skipped_codes": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Skipped Codes",
+            "type": "array"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          },
+          "updated": {
+            "title": "Updated",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "created",
+          "updated",
+          "skipped"
+        ],
+        "title": "OptionImportOut",
         "type": "object"
       },
       "OptionIn": {
@@ -1320,7 +1379,7 @@
     },
     "/api/v1/options/{kind}": {
       "get": {
-        "description": "管理列表（admin-only）。include_deleted=True 时包含已删除项。\n\n每一项附带被引用它未删除费用信息条数，供界面上直接显示。",
+        "description": "管理列表（admin-only）。\n\n默认**已软删除的项在服务端就被过滤掉**，页面上看不到被删除的数据；\n只有显式要求时（include_deleted=True）才连同已删除项一起返回，\n供需要追溯删除记录的场合使用。\n\n每一项附带被引用它未删除费用信息条数，供界面上直接显示。",
         "operationId": "admin_list_api_v1_options__kind__get",
         "parameters": [
           {
@@ -1416,6 +1475,59 @@
           }
         },
         "summary": "Create Option",
+        "tags": [
+          "options"
+        ]
+      }
+    },
+    "/api/v1/options/{kind}/import": {
+      "post": {
+        "description": "批量导入选项项：上传表头为 code 与 name 的 CSV，按 code upsert。\n\ncode 已存在则更新名称，不存在则新增；已软删除的 code 会被跳过。",
+        "operationId": "import_options_api_v1_options__kind__import_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "title": "Kind",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_import_options_api_v1_options__kind__import_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OptionImportOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Import Options",
         "tags": [
           "options"
         ]
@@ -2035,6 +2147,47 @@
         "summary": "Create Charge Info",
         "tags": [
           "charge-info"
+        ]
+      }
+    },
+    "/api/v1/shipments/{sid}/charge-infos/export": {
+      "get": {
+        "description": "把该货运订单下的全部费用信息导出为 Excel（英文表头）。",
+        "operationId": "export_charge_infos_api_v1_shipments__sid__charge_infos_export_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sid",
+            "required": true,
+            "schema": {
+              "title": "Sid",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Charge Infos",
+        "tags": [
+          "shipments"
         ]
       }
     },

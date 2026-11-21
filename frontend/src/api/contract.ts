@@ -19,6 +19,7 @@ export type OptionIn = components["schemas"]["OptionIn"];
 export type OptionOut = components["schemas"]["OptionOut"];
 export type OptionCandidatesOut = components["schemas"]["OptionCandidatesOut"];
 export type OptionDeleteOut = components["schemas"]["OptionDeleteOut"];
+export type OptionImportOut = components["schemas"]["OptionImportOut"];
 export type ReferencesOut = components["schemas"]["ReferencesOut"];
 
 export type ShipmentIn = components["schemas"]["ShipmentIn"];

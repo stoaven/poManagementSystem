@@ -54,3 +54,14 @@ class OptionDeleteOut(BaseModel):
 
     ok: bool
     referenced: int
+
+
+class OptionImportOut(BaseModel):
+    """批量导入的结果统计。"""
+
+    created: int
+    updated: int
+    skipped: int
+    skipped_codes: list[str] = []
+    errors: list[str] = []
+    total: int = 0

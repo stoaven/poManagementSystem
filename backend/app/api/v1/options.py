@@ -5,7 +5,7 @@
 
 candidates 必须注册在 /{kind} 之前，否则会被当成一个 kind 匹配掉（design D21）。
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user, require_admin
@@ -15,12 +15,14 @@ from app.repositories.option import MODEL_BY_KIND
 from app.schemas.options import (
     OptionCandidatesOut,
     OptionDeleteOut,
+    OptionImportOut,
     OptionIn,
     OptionListOut,
     OptionOut,
     OptionStatusIn,
     ReferencesOut,
 )
+from app.services import option_import_service as import_svc
 from app.services import option_service as svc
 
 router = APIRouter(prefix="/options", tags=["options"])
@@ -40,6 +42,18 @@ def candidates(_: User = Depends(get_current_user), db: Session = Depends(get_db
     for kind in MODEL_BY_KIND:
         result[kind] = svc.candidate_list(db, kind)
     return {"kinds": result}
+
+
+@router.post("/{kind}/import", response_model=OptionImportOut)
+def import_options(kind: str, file: UploadFile = File(...),
+                   admin: User = Depends(require_admin),
+                   db: Session = Depends(get_db)):
+    """批量导入选项项：上传表头为 code 与 name 的 CSV，按 code upsert。
+
+    code 已存在则更新名称，不存在则新增；已软删除的 code 会被跳过。
+    """
+    content = file.file.read()
+    return import_svc.import_options(db, kind, content, admin)
 
 
 @router.get("/{kind}", response_model=OptionListOut)
