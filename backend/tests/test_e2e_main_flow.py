@@ -84,48 +84,6 @@ def test_main_flow_login_to_soft_delete(client, admin_user, seeded_options):
     assert all(i["id"] != sid for i in listed["items"])
 
 
-def test_main_flow_related_charge_roundtrip(client, admin_user, seeded_options):
-    """关联收费用：生成 → 补齐 → 落库；生成出的记录不能再链式生成。"""
-    headers = _login(client)
-    sid = client.post("/api/v1/shipments", headers=headers,
-                      json={"shipment_num": "SH-E2E-0002"}).json()["id"]
-    cid = client.post(f"/api/v1/shipments/{sid}/charge-infos",
-                      headers=headers,
-                      json=_charge_payload()).json()["id"]
-
-    # 满足条件时能取到预填草稿：另一侧留空，且**不落库**
-    r = client.get(f"/api/v1/charge-infos/{cid}/related/draft", headers=headers)
-    assert r.status_code == 200, r.text
-    draft = r.json()
-    assert draft["branch"] == "SHO"
-    assert draft["creditor"] == "CNSHL"
-    assert draft["related_source_id"] == cid
-    assert draft["sell_currency"] is None
-    assert draft["os_sell_amt"] is None
-    assert draft["debtor"] is None
-    assert len(client.get(f"/api/v1/shipments/{sid}",
-                          headers=headers).json()["charge_info"]) == 1
-
-    # 用户在弹窗里补齐未填写的一侧，点确定才落库
-    payload = dict(draft)
-    payload.update({"sell_currency": "CNY", "os_sell_amt": "8600.00",
-                    "debtor": "CNSHO"})
-    r = client.post(f"/api/v1/shipments/{sid}/charge-infos", headers=headers,
-                    json=payload)
-    assert r.status_code == 201, r.text
-    gen = r.json()
-    assert gen["related_source_id"] == cid
-    assert gen["sell_currency"] == "CNY"
-
-    # 关联记录不能再链式生成
-    assert client.get(f"/api/v1/charge-infos/{gen['id']}/related/draft",
-                      headers=headers).status_code == 409
-
-    # 源记录与补齐后的关联记录都在明细里
-    detail = client.get(f"/api/v1/shipments/{sid}", headers=headers).json()
-    assert len(detail["charge_info"]) == 2
-
-
 def test_main_flow_shipment_list_has_no_amounts(client, admin_user, seeded_options):
     headers = _login(client)
     client.post("/api/v1/shipments", headers=headers,

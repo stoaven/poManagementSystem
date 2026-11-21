@@ -49,9 +49,6 @@ class ChargeInfo(Base, AuditMixin):
     sell_currency: Mapped[Optional[str]] = mapped_column(String(8), nullable=True)
     os_sell_amt: Mapped[Optional[Decimal]] = mapped_column(Numeric(14, 2), nullable=True)
     debtor: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
-    related_source_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("charge_info.id"), nullable=True
-    )
 
 
 class OptionMixin(AuditMixin):

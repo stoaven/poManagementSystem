@@ -13,7 +13,7 @@
 
 - [x] 2.1 定义 `app/models/user.py`（`users` 表：`phone VARCHAR(20)` 唯一索引 `uk_users_phone`、`username VARCHAR(64)` 可重名、`authority VARCHAR(10)` 默认 `normal`、`is_active`，以及统一状态与审计字段 `status TINYINT` 默认 0（0 正常 / 1 已删除）、`operator VARCHAR(20)`（FK → users.phone，可空）、`created_at`、`updated_at`），验证迁移建表成功且 `SHOW CREATE TABLE users` 确认 phone 唯一、authority 默认值正确、status 与审计字段齐全
 - [x] 2.2 定义 `app/models/shipment.py`（`shipments` 表：**只有 shipment_num 一个业务字段**，含 `shipment_num VARCHAR(64)` 与唯一索引 `uk_shipments_shipment_num`、`lifecycle VARCHAR(20)` 默认 `draft`（业务状态：draft/confirmed/completed/cancelled），以及统一状态与审计字段 `status TINYINT` 默认 0、`operator VARCHAR(20)`（FK → users.phone）、`created_at`、`updated_at`），验证迁移建表成功且确认生命周期与状态两列语义分离
-- [x] 2.3 定义 `app/models/charge_info.py`（`charge_info` 表：shipment_id 外键、job_num、七个分类字段**全部为 VARCHAR 内容列，不设指向选项表的外键**、`os_cost_amt` 与 `os_sell_amt` 为 `DECIMAL(14,2)`以及 `related_source_id BIGINT`（NULL 时表示手工创建，非空时指向源记录，外键自引用）、统一状态与审计字段 `status TINYINT` 默认 0、`operator VARCHAR(20)`（FK → users.phone）、`created_at`、`updated_at`），验证迁移建表成功且列类型与索引正确
+- [x] 2.3 定义 `app/models/charge_info.py`（`charge_info` 表：shipment_id 外键、job_num、七个分类字段**全部为 VARCHAR 内容列，不设指向选项表的外键**、`os_cost_amt` 与 `os_sell_amt` 为 `DECIMAL(14,2)`、统一状态与审计字段 `status TINYINT` 默认 0、`operator VARCHAR(20)`（FK → users.phone）、`created_at`、`updated_at`），验证迁移建表成功且列类型与索引正确
 - [x] 2.4 定义 `app/models/options.py`（六张同构选项表：charge_codes、departments、branches、currencies、creditors、debtors，字段均为 code 唯一、name 可空、is_active，以及统一状态与审计字段 `status TINYINT` 默认 0、`operator VARCHAR(20)`（FK → users.phone）、`created_at`、`updated_at`），验证迁移建表成功且六张表的唯一索引均生效、status 与审计字段与其它表一致
 - [x] 2.5 在迁移中加入 MySQL CHECK 约束（`os_cost_amt >= 0`、`os_sell_amt >= 0`、`authority IN ('admin','normal')`、所有表 `status IN (0,1)`）并建立 `operator` → `users.phone` 的外键（**带 `ON UPDATE CASCADE`**，使改号后历史审计记录同步跟随），验证插入负数金额、非法 authority 与非法 status 的行均被数据库拒绝、修改用户手机号后引用它的审计字段同步更新
 - [x] 2.6 实现 `app/db/session.py`（engine、`sessionmaker`、`get_db` 依赖，**一个请求一个事务**，service 不自行 commit）与 `app/db/base.py`，验证 `alembic downgrade base && alembic upgrade head` 可往返执行且数据表恢复
@@ -73,13 +73,6 @@
 - [x] 8.4 实现 `PATCH /api/v1/charge-infos/{id}`（可改七个分类字段与两侧金额；job_num 不可改；重新执行取值校验与金额约束校验；更新审计字段），验证测试覆盖：修改生效、修改币种后在新币种下参与合计、job_num 保持不变、改成非法取值被拒、编辑不存在的记录返回 404
 - [x] 8.5 实现软删除 `DELETE /api/v1/charge-infos/{id}`（把 status 置为 1、更新 operator 与 updated_at），验证测试覆盖：删除后不出现在货运订单详情中、所属订单的应付与应收合计相应减少、status 与审计字段被更新
 - [x] 8.6 实现 `app/repositories/charge_info.py` 查询助手（统一注入 `status = 0` 过滤、所属货运订单未删除的 JOIN 条件），验证测试覆盖：已删除记录与已删除货运订单下的记录不出现在任何查询中
-
-## 9. 关联收费用的生成（`charge-info`）
-
-- [x] 9.1 实现 `app/services/charge_info_service.py` 的生成规则（源记录应付分支机构为 `SHL` 且应收对象为 `CNSHO` → 关联记录应付分支机构 `SHO`、应付对象 `CNSHL`、应付币种取源记录应收币种、应付金额取源记录应收金额；反向情形对称；两种情形下费用代码与应付部门取自源记录），验证测试覆盖：两条对称规则各自带入正确的分支、对象、币种与金额
-- [x] 9.2 实现 `GET /api/v1/charge-infos/{id}/related/draft`（校验源记录存在且未删除、校验其满足生成条件、**按规则算出预填草稿但不落库**、未由规则填写的一侧留空）与 `POST /api/v1/shipments/{sid}/charge-infos` 的 `related_source_id` 载荷（用户点确定时才写入关联记录），验证测试覆盖：草稿返回正确的带入值、**取草稿不落库**、确认后落库且关联关系已写入、源记录已删除时返回 404、不满足条件时返回 409
-- [x] 9.3 实现「关联记录不再生成关联记录」的判定（依据 `related_source_id` 是否为空，而非依据分支与对象的取值），验证测试覆盖：第一种情形生成的记录不再满足反向触发条件而被拦下、链式生成不会发生
-- [x] 9.4 实现关联生成的记录在编辑时通过必填校验、而用户新建的记录两侧必填，验证测试覆盖：补齐后保存成功、缺失必填字段仍被拒
 
 ## 10. 金额口径（`amount-rules`）
 
@@ -144,7 +137,6 @@
 - [x] 17.9 货运订单详情页删除合计带（应付合计、应收合计、费用信息笔数三块）**及其计算逻辑**——详情接口不再返回 `cost_totals`/`sell_totals`，后端取消按币种分组的聚合查询，验证：详情响应无合计字段、页面无合计带、逐笔明细的币种与金额照常展示
 - [x] 17.6 选项维护页删除排序列，验证：选项表格无排序列，候选列表按代码顺序返回
 - [x] 17.7 所有页面的字段标签中英双语（含表格列头、筛选栏、表单字段、页签、合计带），验证：标签同时显示中文与上游英文名
-- [x] 17.8 关联收费用的操作改名为「添加关联费用」，且仅在满足生成条件时出现、由该规则生成的记录不再出现该操作，验证：满足条件的行有该按钮、不满足条件的行没有、生成出的行没有
 
 ## 16. 契约一致性与整体验证
 

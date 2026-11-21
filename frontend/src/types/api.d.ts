@@ -56,29 +56,6 @@ export interface paths {
         patch: operations["update_charge_info_api_v1_charge_infos__line_id__patch"];
         trace?: never;
     };
-    "/api/v1/charge-infos/{line_id}/related/draft": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Related Draft
-         * @description 关联收费用的预填草稿：按规则算好返回，但**不写库**。
-         *
-         *     用户在弹窗里补齐未填写的一侧、点确定之后，才通过创建接口落库。
-         *     关联记录本身（related_source_id 非空）不再提供该操作。
-         */
-        get: operations["related_draft_api_v1_charge_infos__line_id__related_draft_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/options/candidates": {
         parameters: {
             query?: never;
@@ -440,38 +417,8 @@ export interface components {
             file: string;
         };
         /**
-         * ChargeInfoDraftOut
-         * @description 关联收费用的预填草稿：服务端按规则算好，但不落库。
-         *
-         *     用户在弹窗里补齐未填写的一侧后点确定，才通过创建接口真正写入。
-         */
-        ChargeInfoDraftOut: {
-            /** Branch */
-            branch: string;
-            /** Charge Code */
-            charge_code: string;
-            /** Cost Currency */
-            cost_currency?: string | null;
-            /** Creditor */
-            creditor?: string | null;
-            /** Debtor */
-            debtor?: string | null;
-            /** Department */
-            department: string;
-            /** Os Cost Amt */
-            os_cost_amt?: string | null;
-            /** Os Sell Amt */
-            os_sell_amt?: string | null;
-            /** Related Source Id */
-            related_source_id: number;
-            /** Sell Currency */
-            sell_currency?: string | null;
-        };
-        /**
          * ChargeInfoIn
          * @description 创建载荷：两侧必填。任务码由父订单带出，客户端传入即被忽略。
-         *
-         *     related_source_id 有值表示这是「添加关联费用」，由源记录带出关联关系。
          */
         ChargeInfoIn: {
             /** Branch */
@@ -490,8 +437,6 @@ export interface components {
             os_cost_amt: string;
             /** Os Sell Amt */
             os_sell_amt: string;
-            /** Related Source Id */
-            related_source_id?: number | null;
             /** Sell Currency */
             sell_currency: string;
         };
@@ -526,8 +471,6 @@ export interface components {
             os_cost_amt?: string | null;
             /** Os Sell Amt */
             os_sell_amt?: string | null;
-            /** Related Source Id */
-            related_source_id?: number | null;
             /** Sell Currency */
             sell_currency?: string | null;
             /** Shipment Id */
@@ -995,37 +938,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChargeInfoOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    related_draft_api_v1_charge_infos__line_id__related_draft_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                line_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChargeInfoDraftOut"];
                 };
             };
             /** @description Validation Error */

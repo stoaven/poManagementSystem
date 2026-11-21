@@ -12,7 +12,6 @@ from app.models import User
 from app.repositories import charge_info as charge_info_repo
 from app.repositories import shipment as shipment_repo
 from app.schemas.charge_info import (
-    ChargeInfoDraftOut,
     ChargeInfoIn,
     ChargeInfoOut,
     ChargeInfoPatch,
@@ -57,16 +56,3 @@ def delete_charge_info(line_id: int, user: User = Depends(get_current_user),
     c = _get_line_or_404(db, line_id)
     svc.soft_delete(c, user)
     return {"ok": True}
-
-
-@router.get("/charge-infos/{line_id}/related/draft",
-            response_model=ChargeInfoDraftOut)
-def related_draft(line_id: int, _: User = Depends(get_current_user),
-                  db: Session = Depends(get_db)):
-    """关联收费用的预填草稿：按规则算好返回，但**不写库**。
-
-    用户在弹窗里补齐未填写的一侧、点确定之后，才通过创建接口落库。
-    关联记录本身（related_source_id 非空）不再提供该操作。
-    """
-    src = _get_line_or_404(db, line_id)
-    return svc.related_draft(src)

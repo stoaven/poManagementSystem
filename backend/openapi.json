@@ -15,103 +15,8 @@
         "title": "Body_import_options_api_v1_options__kind__import_post",
         "type": "object"
       },
-      "ChargeInfoDraftOut": {
-        "description": "关联收费用的预填草稿：服务端按规则算好，但不落库。\n\n用户在弹窗里补齐未填写的一侧后点确定，才通过创建接口真正写入。",
-        "properties": {
-          "branch": {
-            "title": "Branch",
-            "type": "string"
-          },
-          "charge_code": {
-            "title": "Charge Code",
-            "type": "string"
-          },
-          "cost_currency": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Cost Currency"
-          },
-          "creditor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Creditor"
-          },
-          "debtor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Debtor"
-          },
-          "department": {
-            "title": "Department",
-            "type": "string"
-          },
-          "os_cost_amt": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Os Cost Amt"
-          },
-          "os_sell_amt": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Os Sell Amt"
-          },
-          "related_source_id": {
-            "title": "Related Source Id",
-            "type": "integer"
-          },
-          "sell_currency": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Sell Currency"
-          }
-        },
-        "required": [
-          "related_source_id",
-          "charge_code",
-          "department",
-          "branch"
-        ],
-        "title": "ChargeInfoDraftOut",
-        "type": "object"
-      },
       "ChargeInfoIn": {
-        "description": "创建载荷：两侧必填。任务码由父订单带出，客户端传入即被忽略。\n\nrelated_source_id 有值表示这是「添加关联费用」，由源记录带出关联关系。",
+        "description": "创建载荷：两侧必填。任务码由父订单带出，客户端传入即被忽略。",
         "properties": {
           "branch": {
             "title": "Branch",
@@ -144,17 +49,6 @@
           "os_sell_amt": {
             "title": "Os Sell Amt",
             "type": "string"
-          },
-          "related_source_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Related Source Id"
           },
           "sell_currency": {
             "title": "Sell Currency",
@@ -274,17 +168,6 @@
               }
             ],
             "title": "Os Sell Amt"
-          },
-          "related_source_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Related Source Id"
           },
           "sell_currency": {
             "anyOf": [
@@ -1307,49 +1190,6 @@
           }
         },
         "summary": "Update Charge Info",
-        "tags": [
-          "charge-info"
-        ]
-      }
-    },
-    "/api/v1/charge-infos/{line_id}/related/draft": {
-      "get": {
-        "description": "关联收费用的预填草稿：按规则算好返回，但**不写库**。\n\n用户在弹窗里补齐未填写的一侧、点确定之后，才通过创建接口落库。\n关联记录本身（related_source_id 非空）不再提供该操作。",
-        "operationId": "related_draft_api_v1_charge_infos__line_id__related_draft_get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "line_id",
-            "required": true,
-            "schema": {
-              "title": "Line Id",
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ChargeInfoDraftOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Related Draft",
         "tags": [
           "charge-info"
         ]

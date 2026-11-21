@@ -4,10 +4,8 @@ import { useRoute, useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
   deleteChargeInfo,
-  fetchRelatedDraft,
   fetchShipment,
   type ChargeInfo,
-  type ChargeInfoDraftOut,
   type ShipmentDetail,
 } from "@/api/chargeInfos";
 import { deleteShipment, exportChargeInfos } from "@/api/shipments";
@@ -30,18 +28,6 @@ const loading = ref(false);
 
 const dialogVisible = ref(false);
 const editing = ref<ChargeInfo | null>(null);
-/** 「添加关联费用」时的预填草稿；null 表示不是关联模式。 */
-const relatedDraft = ref<ChargeInfoDraftOut | null>(null);
-
-/** 关联生成规则：与后端一致的两条对称条件。 */
-function canGenerateRelated(c: ChargeInfo): boolean {
-  if (c.related_source_id !== null) {
-    return false; // 关联生成的记录不再生成
-  }
-  const fwd = c.branch === "SHL" && c.debtor === "CNSHO";
-  const bwd = c.branch === "SHO" && c.creditor === "CNSHL";
-  return fwd || bwd;
-}
 
 async function load() {
   loading.value = true;
@@ -58,13 +44,11 @@ async function load() {
 
 function openCreate() {
   editing.value = null;
-  relatedDraft.value = null;
   dialogVisible.value = true;
 }
 
 function openEdit(row: ChargeInfo) {
   editing.value = row;
-  relatedDraft.value = null;
   dialogVisible.value = true;
 }
 
@@ -82,17 +66,6 @@ async function onDeleteCharge(row: ChargeInfo) {
     await deleteChargeInfo(row.id);
     ElMessage.success("已删除");
     load();
-  } catch (e) {
-    ElMessage.error((e as Error).message);
-  }
-}
-
-async function onGenerateRelated(row: ChargeInfo) {
-  try {
-    // 只取预填草稿，不落库：用户在弹窗里补齐后点确定才写入
-    relatedDraft.value = await fetchRelatedDraft(row.id);
-    editing.value = null;
-    dialogVisible.value = true;
   } catch (e) {
     ElMessage.error((e as Error).message);
   }
@@ -222,7 +195,6 @@ watch(() => route.params.id, load);
           </template>
           <template #default="{ row }">
             <span class="mono">{{ row.charge_code }}</span>
-            <span v-if="row.related_source_id !== null" class="tag-rel">关联</span>
           </template>
         </el-table-column>
 
@@ -299,13 +271,6 @@ watch(() => route.params.id, load);
             <BilingualLabel label="操作" en="Actions" />
           </template>
           <template #default="{ row }">
-            <a
-              v-if="canGenerateRelated(row)"
-              class="lnk lnk-rel"
-              @click="onGenerateRelated(row)"
-            >
-              添加关联费用
-            </a>
             <a class="lnk" @click="openEdit(row)">编辑</a>
             <a class="lnk lnk-danger" @click="onDeleteCharge(row)">删除</a>
           </template>
@@ -317,7 +282,6 @@ watch(() => route.params.id, load);
       v-model="dialogVisible"
       :shipment-id="Number(route.params.id)"
       :charge-info="editing"
-      :related-draft="relatedDraft"
       @saved="load"
     />
   </div>

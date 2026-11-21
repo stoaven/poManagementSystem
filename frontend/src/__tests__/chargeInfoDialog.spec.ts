@@ -123,7 +123,6 @@ describe("费用信息弹窗", () => {
     await flushPromises();
 
     expect(createChargeInfo).toHaveBeenCalledWith(1, {
-      related_source_id: null,
       charge_code: "DHLF",
       department: "FIS",
       branch: "SHL",
@@ -134,57 +133,6 @@ describe("费用信息弹窗", () => {
       os_sell_amt: "61400.00",
       debtor: "CNSHO",
     });
-  });
-});
-
-describe("费用信息弹窗的关联模式", () => {
-  const DRAFT = {
-    related_source_id: 11,
-    charge_code: "DHLF",
-    department: "FIS",
-    branch: "SHO",
-    cost_currency: "CNY",
-    os_cost_amt: "61400.00",
-    creditor: "CNSHL",
-    sell_currency: null,
-    os_sell_amt: null,
-    debtor: null,
-  };
-
-  it("按草稿预填，标题是「添加关联费用」", async () => {
-    const w = mountDialog({ relatedDraft: DRAFT });
-    await flushPromises();
-    expect(w.text()).toContain("添加关联费用");
-    // 草稿带过来的值已经填在表单里
-    const vm = w.vm as unknown as { form: Record<string, string | null> };
-    expect(vm.form.branch).toBe("SHO");
-    expect(vm.form.cost_currency).toBe("CNY");
-    expect(vm.form.os_cost_amt).toBe("61400.00");
-    // 未填写的一侧仍为空
-    expect(vm.form.sell_currency).toBeNull();
-  });
-
-  it("保存时带上 related_source_id", async () => {
-    createChargeInfo.mockResolvedValue({ id: 6 });
-    const w = mountDialog({ relatedDraft: DRAFT });
-    await flushPromises();
-
-    const vm = w.vm as unknown as { form: Record<string, string | null> };
-    vm.form.sell_currency = "CNY";
-    vm.form.os_sell_amt = "61400.00";
-    vm.form.debtor = "CNSHO";
-
-    await w.findAll("button").find((b) => b.text() === "保存")!.trigger("click");
-    await flushPromises();
-
-    expect(createChargeInfo).toHaveBeenCalledWith(
-      1,
-      expect.objectContaining({
-        related_source_id: 11,
-        branch: "SHO",
-        debtor: "CNSHO",
-      }),
-    );
   });
 });
 

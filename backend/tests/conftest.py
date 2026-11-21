@@ -157,7 +157,7 @@ def seeded_charge(db, admin_user, seeded_shipment):
         charge_code="DHLF", department="FIS", branch="SHL",
         cost_currency="USD", os_cost_amt=8600, creditor="CNSHL",
         sell_currency="CNY", os_sell_amt=61400, debtor="CNSHO",
-        related_source_id=None, status=0, operator=admin_user.phone,
+        status=0, operator=admin_user.phone,
     )
     db.add(c)
     db.flush()
