@@ -157,9 +157,13 @@ def seeded_charge(db, admin_user, seeded_shipment):
 
     c = ChargeInfo(
         shipment_id=seeded_shipment.id, job_num=seeded_shipment.shipment_num,
-        charge_code="DHLF", department="FIS", branch="SHL",
+        charge_code="DHLF", description="快递国际",
+        department="FIS", branch="SHL",
         cost_currency="USD", os_cost_amt=8600, creditor="CNSHL",
         sell_currency="CNY", os_sell_amt=61400, debtor="CNSHO",
+        # 折算后金额：应付币种是 USD（不是本位币），应收币种是 CNY
+        estimated_cost=0, local_cost_amt=0,
+        estimated_revenue=61400, local_sell_amt=61400,
         status=0, operator=admin_user.phone,
     )
     db.add(c)

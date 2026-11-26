@@ -197,14 +197,12 @@ watch(() => route.params.id, load);
             <span class="mono">{{ row.charge_code }}</span>
           </template>
         </el-table-column>
-
-        <!-- 应付带 -->
-        <el-table-column min-width="88">
+        <el-table-column min-width="210">
           <template #header>
-            <BilingualLabel label="部门" en="Department" />
+            <BilingualLabel label="描述" en="Description" />
           </template>
           <template #default="{ row }">
-            <span class="mono">{{ row.department }}</span>
+            <span>{{ row.description ?? "—" }}</span>
           </template>
         </el-table-column>
         <el-table-column min-width="80">
@@ -213,6 +211,14 @@ watch(() => route.params.id, load);
           </template>
           <template #default="{ row }">
             <span class="mono">{{ row.branch }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column min-width="88">
+          <template #header>
+            <BilingualLabel label="部门" en="Department" />
+          </template>
+          <template #default="{ row }">
+            <span class="mono">{{ row.department }}</span>
           </template>
         </el-table-column>
         <el-table-column min-width="106" align="left">
@@ -231,6 +237,22 @@ watch(() => route.params.id, load);
             <span class="amt amt-pay">{{ displayMoney(row.os_cost_amt) }}</span>
           </template>
         </el-table-column>
+        <el-table-column min-width="116" align="left">
+          <template #header>
+            <BilingualLabel label="估算成本" en="Estimated Cost" />
+          </template>
+          <template #default="{ row }">
+            <span class="amt amt-pay">{{ displayMoney(row.estimated_cost) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column min-width="110" align="left">
+          <template #header>
+            <BilingualLabel label="本地成本" en="Local Cost Amt" />
+          </template>
+          <template #default="{ row }">
+            <span class="amt amt-pay">{{ displayMoney(row.local_cost_amt) }}</span>
+          </template>
+        </el-table-column>
         <el-table-column min-width="120">
           <template #header>
             <BilingualLabel label="应付对象" en="Creditor" />
@@ -239,8 +261,6 @@ watch(() => route.params.id, load);
             <span>{{ row.creditor ?? "—" }}</span>
           </template>
         </el-table-column>
-
-        <!-- 应收带 -->
         <el-table-column min-width="106" align="left">
           <template #header>
             <BilingualLabel label="应收币种" en="Sell Currency" />
@@ -257,7 +277,23 @@ watch(() => route.params.id, load);
             <span class="amt amt-rec">{{ displayMoney(row.os_sell_amt) }}</span>
           </template>
         </el-table-column>
-        <el-table-column min-width="120">
+        <el-table-column min-width="122" align="left">
+          <template #header>
+            <BilingualLabel label="估算收入" en="Estimated Revenue" />
+          </template>
+          <template #default="{ row }">
+            <span class="amt amt-rec">{{ displayMoney(row.estimated_revenue) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column min-width="115" align="left">
+          <template #header>
+            <BilingualLabel label="本地应收" en="Local Sell Amt" />
+          </template>
+          <template #default="{ row }">
+            <span class="amt amt-rec">{{ displayMoney(row.local_sell_amt) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column min-width="110">
           <template #header>
             <BilingualLabel label="应收对象" en="Debtor" />
           </template>
@@ -265,7 +301,6 @@ watch(() => route.params.id, load);
             <span>{{ row.debtor ?? "—" }}</span>
           </template>
         </el-table-column>
-
         <el-table-column min-width="110" align="right">
           <template #header>
             <BilingualLabel label="操作" en="Actions" />

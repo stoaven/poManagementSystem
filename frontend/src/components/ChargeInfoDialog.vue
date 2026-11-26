@@ -36,6 +36,7 @@ type ChargeInfoForm = { [K in keyof ChargeInfoPatch]-?: string | null };
 
 const form = reactive<ChargeInfoForm>({
   charge_code: "",
+  description: null,
   department: "",
   branch: "",
   cost_currency: null,
@@ -72,6 +73,7 @@ watch(
     const c = props.chargeInfo;
     if (c) {
       form.charge_code = c.charge_code;
+      form.description = c.description ?? null;
       form.department = c.department;
       form.branch = c.branch;
       form.cost_currency = c.cost_currency ?? null;
@@ -82,6 +84,7 @@ watch(
       form.debtor = c.debtor ?? null;
     } else {
       form.charge_code = "";
+      form.description = null;
       form.department = "";
       form.branch = "";
       form.cost_currency = null;
@@ -95,6 +98,21 @@ watch(
   // 打开时立刻按当前记录（或关联草稿）预填，弹窗若以打开状态挂载也一样
   { immediate: true },
 );
+
+/**
+ * 选了费用代码就把该代码的描述带出来（用户随后可以改）。
+ * 编辑既有记录时不带出——记录里存的就是当时填的描述。
+ */
+function onChargeCodeChange(code: string | null) {
+  if (!code) {
+    form.description = null;
+    return;
+  }
+  const hit = options
+    .candidates("charge_codes")
+    .find((o) => o.code === code);
+  form.description = hit?.description ?? null;
+}
 
 function validate(): boolean {
   const required: Array<[keyof ChargeInfoPatch, string]> = [
@@ -135,6 +153,7 @@ async function onSave() {
     // 校验通过后两侧齐备，组装成创建用的载荷（编辑用同一个载荷即可）
     const payload: ChargeInfoIn = {
       charge_code: String(form.charge_code),
+      description: String(form.description ?? ""),
       department: String(form.department),
       branch: String(form.branch),
       cost_currency: String(form.cost_currency),
@@ -173,7 +192,18 @@ async function onSave() {
       <div class="grid">
         <label class="field">
           <BilingualLabel label="费用代码" en="Charge Code" />
-          <OptionSelect kind="charge_codes" v-model="form.charge_code" />
+          <OptionSelect
+            kind="charge_codes"
+            v-model="form.charge_code"
+            @change="onChargeCodeChange"
+          />
+        </label>
+        <label class="field">
+          <BilingualLabel label="描述" en="Description" />
+          <el-input
+            v-model="form.description"
+            placeholder="选费用代码后自动带出，可改"
+          />
         </label>
       </div>
     </div>
@@ -232,6 +262,7 @@ async function onSave() {
 
     <p class="note">
       应付与应收两侧的币种各自独立，不做汇率折算。任务码由所属货运订单带出，无需填写。
+      估算成本与本地成本、估算收入与本地应收金额由系统按币种自动算出：币种是人民币才等于原币金额，其余币种为 0.00。
     </p>
 
     <template #footer>

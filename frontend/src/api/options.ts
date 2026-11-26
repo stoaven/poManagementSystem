@@ -47,6 +47,15 @@ export const OPTION_KIND_LABELS_EN: Record<OptionKind, string> = {
 
 export interface OptionItem extends OptionOut {}
 
+/**
+ * 选项项的展示标签：费用代码表用 description（描述），其余五类用 name（名称）；
+ * 都为空时用代码本身。
+ */
+export function optionLabel(kind: OptionKind, item: OptionItem): string {
+  const raw = kind === "charge_codes" ? item.description : item.name;
+  return raw && raw !== item.code ? raw : item.code;
+}
+
 /** 一次取回六类候选（启用且未删除）。 */
 export async function fetchCandidates(): Promise<
   Record<OptionKind, OptionItem[]>

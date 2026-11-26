@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { OPTION_KIND_LABELS, type OptionKind } from "@/api/options";
+import {
+  OPTION_KIND_LABELS,
+  optionLabel,
+  type OptionKind,
+} from "@/api/options";
 import { useOptionsStore } from "@/stores/options";
 
 const props = defineProps<{
@@ -11,7 +15,11 @@ const props = defineProps<{
   placeholder?: string;
 }>();
 
-const emit = defineEmits<{ (e: "update:modelValue", v: string | null): void }>();
+const emit = defineEmits<{
+  (e: "update:modelValue", v: string | null): void;
+  /** 用户在下拉里选了别的值——只有用户操作才发，程序赋值不发。 */
+  (e: "change", v: string | null): void;
+}>();
 
 const options = useOptionsStore();
 
@@ -23,6 +31,7 @@ const label = computed(
 
 function onChange(v: string | null) {
   emit("update:modelValue", v);
+  emit("change", v);
 }
 </script>
 
@@ -40,7 +49,11 @@ function onChange(v: string | null) {
     <el-option
       v-for="item in items"
       :key="item.code"
-      :label="item.name === item.code ? item.code : `${item.code} · ${item.name}`"
+      :label="
+        optionLabel(props.kind, item) === item.code
+          ? item.code
+          : `${item.code} · ${optionLabel(props.kind, item)}`
+      "
       :value="item.code"
     />
   </el-select>

@@ -67,13 +67,18 @@ function detailPayload(lifecycle: string) {
         shipment_id: 1,
         job_num: "SH-20261119-0007",
         charge_code: "DHLF",
+        description: "快递国际",
         department: "FIS",
         branch: "SHL",
         cost_currency: "USD",
         os_cost_amt: "8600.00",
+        estimated_cost: "0.00",
+        local_cost_amt: "0.00",
         creditor: "CNSHL",
         sell_currency: "CNY",
         os_sell_amt: "61400.00",
+        estimated_revenue: "61400.00",
+        local_sell_amt: "61400.00",
         debtor: "CNSHO",
         operator: "13800000001",
         created_at: "2026-11-19 09:24:00",
@@ -126,6 +131,34 @@ describe("货运订单详情页", () => {
     await flushPromises();
     expect(w.text()).not.toContain("任务码");
     expect(w.text()).not.toContain("Job No.");
+  });
+
+  it("费用信息表是十四栏：含描述与四个折算后金额", async () => {
+    const w = mountView(ShipmentDetailView);
+    await flushPromises();
+    const text = w.text();
+    for (const [cn, en] of [
+      ["费用代码", "Charge Code"],
+      ["描述", "Description"],
+      ["分支机构", "Branch"],
+      ["部门", "Department"],
+      ["应付币种", "Cost Currency"],
+      ["应付金额", "OS Cost Amt"],
+      ["估算成本", "Estimated Cost"],
+      ["本地成本", "Local Cost Amt"],
+      ["应付对象", "Creditor"],
+      ["应收币种", "Sell Currency"],
+      ["应收金额", "OS Sell Amt"],
+      ["估算收入", "Estimated Revenue"],
+      ["本地应收", "Local Sell Amt"],
+      ["应收对象", "Debtor"],
+    ]) {
+      expect(text).toContain(cn);
+      expect(text).toContain(en);
+    }
+    // 描述与四个折算后金额都展示出来
+    expect(text).toContain("快递国际");
+    expect(text).toContain("61,400.00");
   });
 
   it("不再提供「添加关联费用」操作", async () => {

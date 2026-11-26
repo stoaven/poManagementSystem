@@ -16,7 +16,7 @@
         "type": "object"
       },
       "ChargeInfoIn": {
-        "description": "创建载荷：两侧必填。任务码由父订单带出，客户端传入即被忽略。",
+        "description": "创建载荷：两侧必填。任务码由父订单带出，客户端传入即被忽略。\n\ndescription 可填可空：留空时从费用代码表带出该 code 的描述。\n四个折算后金额不由客户端传——服务端按币种算出来。",
         "properties": {
           "branch": {
             "title": "Branch",
@@ -41,6 +41,17 @@
           "department": {
             "title": "Department",
             "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
           },
           "os_cost_amt": {
             "title": "Os Cost Amt",
@@ -143,6 +154,39 @@
             "title": "Department",
             "type": "string"
           },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "estimated_cost": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Cost"
+          },
+          "estimated_revenue": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Revenue"
+          },
           "id": {
             "title": "Id",
             "type": "integer"
@@ -150,6 +194,28 @@
           "job_num": {
             "title": "Job Num",
             "type": "string"
+          },
+          "local_cost_amt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Local Cost Amt"
+          },
+          "local_sell_amt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Local Sell Amt"
           },
           "operator": {
             "anyOf": [
@@ -295,6 +361,17 @@
               }
             ],
             "title": "Department"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
           },
           "os_cost_amt": {
             "anyOf": [

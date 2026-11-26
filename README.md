@@ -114,7 +114,7 @@ npm run dev
 | PATCH | `/shipments/{id}` | 登录 | 修改货运订单号 |
 | DELETE | `/shipments/{id}` | 登录 | 软删除订单 |
 | POST | `/shipments/{id}/confirm\|complete\|cancel` | 登录 | 状态流转（草稿→确认/取消，已确认→完成/取消） |
-| POST | `/shipments/{id}/charge-infos` | 登录 | 新增费用信息（**一次写入两条**，见下） |
+| POST | `/shipments/{id}/charge-infos` | 登录 | 新增费用信息（**一次写入两条**；可带 `description`，留空时从费用代码表带出） |
 | PATCH | `/charge-infos/{id}` | 登录 | 修改费用信息 |
 | DELETE | `/charge-infos/{id}` | 登录 | 软删除费用信息 |
 
@@ -128,7 +128,7 @@ npm run dev
 
 | 字段 | A | B |
 |---|---|---|
-| 费用代码 / 应付部门 | 页面 | 同 A |
+| 费用代码 / 应付部门 / 描述 | 页面 | 同 A |
 | 应付分支机构 | 页面 | 镜像分支（`SHL`↔`SHO`） |
 | 应付币种 / 应付金额 | 页面 | 同 A 的应收币种与金额 |
 | 应付对象 | 页面 | 对家单位（按 **B 自己的分支**：`SHL`→`CNSHO`，`SHO`→`CNSHL`） |
@@ -137,6 +137,20 @@ npm run dev
 
 两条在同一事务内写入，任一条不合法两条都不落库。分支机构只有 `SHL` 与 `SHO`
 两种，填别的会被拒绝（没有对应的镜像分支，对家也无从确定）。
+
+### 描述与四个折算后金额
+
+每条费用信息上还带一列**描述**和四个折算后金额：
+
+| 字段 | 口径 |
+|---|---|
+| `description` 描述 | 页面填的值；没填时从费用代码表里带出该代码的描述 |
+| `estimated_cost` 估算成本 | 该条应付币种是 `CNY` 时 = 应付金额，否则 `0.00` |
+| `local_cost_amt` 本地成本 | 同上 |
+| `estimated_revenue` 估算收入 | 该条应收币种是 `CNY` 时 = 应收金额，否则 `0.00` |
+| `local_sell_amt` 本地应收金额 | 同上 |
+
+四个金额由系统按**每条记录自己的币种**算，客户端不传；改了币种或金额会自动重算。
 
 ## 六类选项表
 
@@ -184,9 +198,12 @@ npm run dev
 `.xlsx` 文件。表头用**上游英文字段名**：
 
 ```
-Job Num. | Charge Code | Department | Branch | Cost Currency |
-OS Cost Amt | Creditor | Sell Currency | OS Sell Amt | Debtor
+Charge Code | Description | Branch | Department | Cost Currency |
+OS Cost Amt | Estimated Cost | Local Cost Amt | Creditor | Sell Currency |
+OS Sell Amt | Estimated Revenue | Local Sell Amt | Debtor
 ```
+
+十四栏，与详情页表格的栏位一致（导出不再带任务码列）。
 
 两列金额以**数值**写入（可直接在 Excel 里求和与筛选），已软删除的记录不导出。
 文件名取自货运订单号，如 `charge-info-SSHL26309129.xlsx`。

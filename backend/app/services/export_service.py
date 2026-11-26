@@ -12,25 +12,29 @@ from openpyxl.utils import get_column_letter
 
 from app.models import ChargeInfo
 
-# 上游字段名，顺序即列顺序
+# 上游字段名，顺序即列顺序（与详情页表格一致）
 EXPORT_HEADERS: List[str] = [
-    "Job Num.",
     "Charge Code",
-    "Department",
+    "Description",
     "Branch",
+    "Department",
     "Cost Currency",
     "OS Cost Amt",
+    "Estimated Cost",
+    "Local Cost Amt",
     "Creditor",
     "Sell Currency",
     "OS Sell Amt",
+    "Estimated Revenue",
+    "Local Sell Amt",
     "Debtor",
 ]
 
 # 金额列（写数字而不是文本，才能在 Excel 里求和与筛选）
-AMOUNT_COLUMNS = (6, 10)
+AMOUNT_COLUMNS = (6, 7, 8, 11, 12, 13)
 
 # 列宽：按表头长度给个下限，长文本留宽一点
-COLUMN_WIDTHS = [14, 14, 14, 12, 14, 14, 18, 14, 14, 18]
+COLUMN_WIDTHS = [14, 28, 12, 14, 14, 14, 16, 15, 16, 14, 14, 17, 15, 18]
 
 
 def _amount(value) -> Optional[float]:
@@ -51,15 +55,19 @@ def build_charge_info_workbook(lines: Iterable[ChargeInfo]) -> bytes:
 
     for line in lines:
         ws.append([
-            line.job_num,
             line.charge_code,
-            line.department,
+            line.description,
             line.branch,
+            line.department,
             line.cost_currency,
             _amount(line.os_cost_amt),
+            _amount(line.estimated_cost),
+            _amount(line.local_cost_amt),
             line.creditor,
             line.sell_currency,
             _amount(line.os_sell_amt),
+            _amount(line.estimated_revenue),
+            _amount(line.local_sell_amt),
             line.debtor,
         ])
 

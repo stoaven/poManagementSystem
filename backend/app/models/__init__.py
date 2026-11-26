@@ -29,9 +29,11 @@ class ChargeInfo(Base, AuditMixin):
     """charge_info 表：一条记录同时承载应付侧与应收侧。
 
     字段口径来自上游费用信息表单（design D30）：
-    通用列 job_num / charge_code；
+    通用列 job_num / charge_code / description；
     应付列 department / branch / cost_currency / os_cost_amt / creditor；
-    应收列 sell_currency / os_sell_amt / debtor。
+    应收列 sell_currency / os_sell_amt / debtor；
+    折算后金额列 estimated_cost / local_cost_amt / estimated_revenue /
+    local_sell_amt——本位币（CNY）才等于原币金额，否则为 0.00。
     """
 
     __tablename__ = "charge_info"
@@ -40,6 +42,8 @@ class ChargeInfo(Base, AuditMixin):
     shipment_id: Mapped[int] = mapped_column(ForeignKey("shipments.id"))
     job_num: Mapped[str] = mapped_column(String(64))
     charge_code: Mapped[str] = mapped_column(String(64))
+    # 描述：默认取费用代码表里该 code 的描述，页面可改
+    description: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     department: Mapped[str] = mapped_column(String(64))
     branch: Mapped[str] = mapped_column(String(64))
     # 以下六个侧字段对关联生成的记录允许为 NULL（未填写的一侧，spec：留空待补）
@@ -49,6 +53,11 @@ class ChargeInfo(Base, AuditMixin):
     sell_currency: Mapped[Optional[str]] = mapped_column(String(8), nullable=True)
     os_sell_amt: Mapped[Optional[Decimal]] = mapped_column(Numeric(14, 2), nullable=True)
     debtor: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    # 折算后的估算/本地金额：只有本位币才有值
+    estimated_cost: Mapped[Optional[Decimal]] = mapped_column(Numeric(14, 2), nullable=True)
+    local_cost_amt: Mapped[Optional[Decimal]] = mapped_column(Numeric(14, 2), nullable=True)
+    estimated_revenue: Mapped[Optional[Decimal]] = mapped_column(Numeric(14, 2), nullable=True)
+    local_sell_amt: Mapped[Optional[Decimal]] = mapped_column(Numeric(14, 2), nullable=True)
 
 
 class OptionMixin(AuditMixin):

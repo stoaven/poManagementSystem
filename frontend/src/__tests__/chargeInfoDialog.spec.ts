@@ -92,6 +92,75 @@ describe("费用信息弹窗", () => {
     expect(createChargeInfo).not.toHaveBeenCalled();
   });
 
+  it("费用代码旁边有描述输入框", async () => {
+    const w = mountDialog();
+    await flushPromises();
+    const fields = w.findAll("label").filter((l) => l.text().includes("描述"));
+    expect(fields.length).toBe(1);
+    expect(fields[0].text()).toContain("Description");
+    // 描述框与费用代码框在同一组（费用组）里
+    const grp = w.findAll(".grp")[0];
+    expect(grp.text()).toContain("费用代码");
+    expect(grp.text()).toContain("Description");
+  });
+
+  it("选了费用代码就带出该代码的描述", async () => {
+    const w = mountDialog();
+    await flushPromises();
+    const store = useOptionsStore();
+    store.kinds = {
+      charge_codes: [
+        { code: "DHLF", description: "快递国际" } as never,
+        { code: "OCUC", description: "清关费" } as never,
+      ],
+    } as never;
+
+    const vm = w.vm as unknown as {
+      form: Record<string, string | null>;
+      onChargeCodeChange: (code: string | null) => void;
+    };
+    vm.onChargeCodeChange("OCUC");
+    await flushPromises();
+    expect(vm.form.description).toBe("清关费");
+  });
+
+  it("提交时带上页面填的描述", async () => {
+    createChargeInfo.mockResolvedValue([{ id: 5 }, { id: 6 }]);
+    const w = mountDialog();
+    await flushPromises();
+    const store = useOptionsStore();
+    store.kinds = {
+      charge_codes: [{ code: "DHLF", description: "快递国际" } as never],
+      departments: [{ code: "FIS" } as never],
+      branches: [{ code: "SHL" } as never],
+      currencies: [{ code: "USD" }, { code: "CNY" }] as never,
+      creditors: [{ code: "CNSHL" } as never],
+      debtors: [{ code: "CNSHO" } as never],
+    };
+
+    const vm = w.vm as unknown as { form: Record<string, string | null> };
+    Object.assign(vm.form, {
+      charge_code: "DHLF",
+      description: "快递国际",
+      department: "FIS",
+      branch: "SHL",
+      cost_currency: "USD",
+      os_cost_amt: "8600.00",
+      creditor: "CNSHL",
+      sell_currency: "CNY",
+      os_sell_amt: "61400.00",
+      debtor: "CNSHO",
+    });
+
+    await w.findAll("button").find((b) => b.text() === "保存")!.trigger("click");
+    await flushPromises();
+
+    expect(createChargeInfo).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ description: "快递国际" }),
+    );
+  });
+
   it("填齐两侧后提交完整载荷（一次写入两条）", async () => {
     createChargeInfo.mockResolvedValue([{ id: 5 }, { id: 6 }]);
     const w = mountDialog();
@@ -124,6 +193,7 @@ describe("费用信息弹窗", () => {
 
     expect(createChargeInfo).toHaveBeenCalledWith(1, {
       charge_code: "DHLF",
+      description: "",
       department: "FIS",
       branch: "SHL",
       cost_currency: "USD",

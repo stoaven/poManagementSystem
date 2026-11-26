@@ -423,6 +423,9 @@ export interface components {
         /**
          * ChargeInfoIn
          * @description 创建载荷：两侧必填。任务码由父订单带出，客户端传入即被忽略。
+         *
+         *     description 可填可空：留空时从费用代码表带出该 code 的描述。
+         *     四个折算后金额不由客户端传——服务端按币种算出来。
          */
         ChargeInfoIn: {
             /** Branch */
@@ -437,6 +440,8 @@ export interface components {
             debtor: string;
             /** Department */
             department: string;
+            /** Description */
+            description?: string | null;
             /** Os Cost Amt */
             os_cost_amt: string;
             /** Os Sell Amt */
@@ -474,10 +479,20 @@ export interface components {
             debtor?: string | null;
             /** Department */
             department: string;
+            /** Description */
+            description?: string | null;
+            /** Estimated Cost */
+            estimated_cost?: string | null;
+            /** Estimated Revenue */
+            estimated_revenue?: string | null;
             /** Id */
             id: number;
             /** Job Num */
             job_num: string;
+            /** Local Cost Amt */
+            local_cost_amt?: string | null;
+            /** Local Sell Amt */
+            local_sell_amt?: string | null;
             /** Operator */
             operator?: string | null;
             /** Os Cost Amt */
@@ -513,6 +528,8 @@ export interface components {
             debtor?: string | null;
             /** Department */
             department?: string | null;
+            /** Description */
+            description?: string | null;
             /** Os Cost Amt */
             os_cost_amt?: string | null;
             /** Os Sell Amt */

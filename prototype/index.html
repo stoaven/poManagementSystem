@@ -190,56 +190,79 @@
         </div>
 
         <div class="tbl-scroll">
-          <table class="tbl tbl-split" id="charge-info-table">
+          <table class="tbl" id="charge-info-table">
             <thead>
               <tr>
-                <th rowspan="2" class="lead"><span class="bi-cn">费用代码</span><span class="bi-en">Charge Code</span></th>
-                <th colspan="5" class="band band-pay"><span class="bi-cn">应付</span><span class="bi-en">Payable</span></th>
-                <th colspan="3" class="band band-rec"><span class="bi-cn">应收</span><span class="bi-en">Receivable</span></th>
-                <th rowspan="2" class="act"><span class="bi-cn">操作</span><span class="bi-en">Actions</span></th>
-              </tr>
-              <tr>
-                <th><span class="bi-cn">部门</span><span class="bi-en">Department</span></th><th><span class="bi-cn">分支机构</span><span class="bi-en">Branch</span></th><th style="width:110px"><span class="bi-cn">应付币种</span><span class="bi-en">Cost Currency</span></th><th class="num" style="width:120px"><span class="bi-cn">金额</span><span class="bi-en">OS Cost Amt</span></th><th><span class="bi-cn">应付对象</span><span class="bi-en">Creditor</span></th><th style="width:110px"><span class="bi-cn">应收币种</span><span class="bi-en">Sell Currency</span></th><th class="num" style="width:120px"><span class="bi-cn">金额</span><span class="bi-en">OS Sell Amt</span></th><th><span class="bi-cn">应收对象</span><span class="bi-en">Debtor</span></th>
+                <th><span class="bi-cn">费用代码</span><span class="bi-en">Charge Code</span></th>
+                <th><span class="bi-cn">描述</span><span class="bi-en">Description</span></th>
+                <th><span class="bi-cn">分支机构</span><span class="bi-en">Branch</span></th>
+                <th><span class="bi-cn">部门</span><span class="bi-en">Department</span></th>
+                <th><span class="bi-cn">应付币种</span><span class="bi-en">Cost Currency</span></th>
+                <th><span class="bi-cn">应付金额</span><span class="bi-en">OS Cost Amt</span></th>
+                <th><span class="bi-cn">估算成本</span><span class="bi-en">Estimated Cost</span></th>
+                <th><span class="bi-cn">本地成本</span><span class="bi-en">Local Cost Amt</span></th>
+                <th><span class="bi-cn">应付对象</span><span class="bi-en">Creditor</span></th>
+                <th><span class="bi-cn">应收币种</span><span class="bi-en">Sell Currency</span></th>
+                <th><span class="bi-cn">应收金额</span><span class="bi-en">OS Sell Amt</span></th>
+                <th><span class="bi-cn">估算收入</span><span class="bi-en">Estimated Revenue</span></th>
+                <th><span class="bi-cn">本地应收</span><span class="bi-en">Local Sell Amt</span></th>
+                <th><span class="bi-cn">应收对象</span><span class="bi-en">Debtor</span></th>
+                <th class="act"><span class="bi-cn">操作</span><span class="bi-en">Actions</span></th>
               </tr>
             </thead>
             <tbody>
               <tr data-branch="SHL" data-creditor="CNSHL" data-debtor="CNSHO">
                 <td class="mono">DHLF</td>
-                <td class="mono">FIS</td>
+                <td>HANDLING CHARGE - DESTINATION</td>
                 <td class="mono">SHL</td>
+                <td class="mono">FIS</td>
                 <td class="mono cur-cell">USD</td>
                 <td class="num amt-cell"><span class="amt amt-pay">8,600.00</span></td>
+                <td class="num amt-cell"><span class="amt amt-pay">0.00</span></td>
+                <td class="num amt-cell"><span class="amt amt-pay">0.00</span></td>
                 <td>CNSHL</td>
                 <td class="mono cur-cell">CNY</td>
+                <td class="num amt-cell"><span class="amt amt-rec">61,400.00</span></td>
+                <td class="num amt-cell"><span class="amt amt-rec">61,400.00</span></td>
                 <td class="num amt-cell"><span class="amt amt-rec">61,400.00</span></td>
                 <td>CNSHO</td>
                 <td class="act"><a href="#" class="lnk">编辑</a><a href="#" class="lnk lnk-danger">删除</a></td>
               </tr>
               <tr data-branch="SHO" data-creditor="CNSHL" data-debtor="CNSHO">
                 <td class="mono">OCUC</td>
-                <td class="mono">FIS</td>
+                <td>CUSTOMS CLEARANCE - ORIGIN</td>
                 <td class="mono">SHO</td>
+                <td class="mono">FIS</td>
                 <td class="mono cur-cell">USD</td>
                 <td class="num amt-cell"><span class="amt amt-pay">2,600.00</span></td>
+                <td class="num amt-cell"><span class="amt amt-pay">0.00</span></td>
+                <td class="num amt-cell"><span class="amt amt-pay">0.00</span></td>
                 <td>CNSHL</td>
                 <td class="mono cur-cell">CNY</td>
+                <td class="num amt-cell"><span class="amt amt-rec">27,200.00</span></td>
+                <td class="num amt-cell"><span class="amt amt-rec">27,200.00</span></td>
                 <td class="num amt-cell"><span class="amt amt-rec">27,200.00</span></td>
                 <td>CNSHO</td>
                 <td class="act"><a href="#" class="lnk">编辑</a><a href="#" class="lnk lnk-danger">删除</a></td>
               </tr>
               <tr data-branch="SHL" data-creditor="MAERSK" data-debtor="中远海运集运">
                 <td class="mono">OINSUR</td>
-                <td class="mono">FIS</td>
+                <td>CARGO INSURANCE PREMIUM - ORIGIN</td>
                 <td class="mono">SHL</td>
+                <td class="mono">FIS</td>
                 <td class="mono cur-cell">USD</td>
                 <td class="num amt-cell"><span class="amt amt-pay">1,200.00</span></td>
+                <td class="num amt-cell"><span class="amt amt-pay">0.00</span></td>
+                <td class="num amt-cell"><span class="amt amt-pay">0.00</span></td>
                 <td>MAERSK</td>
                 <td class="mono cur-cell">CNY</td>
+                <td class="num amt-cell"><span class="amt amt-rec">12,800.00</span></td>
+                <td class="num amt-cell"><span class="amt amt-rec">12,800.00</span></td>
                 <td class="num amt-cell"><span class="amt amt-rec">12,800.00</span></td>
                 <td>中远海运集运</td>
                 <td class="act"><a href="#" class="lnk">编辑</a><a href="#" class="lnk lnk-danger">删除</a></td>
               </tr>
-</tbody>
+            </tbody>
           </table>
         </div>
       </div>
@@ -409,6 +432,10 @@
             <select class="input"><option>DHLF</option><option>OCUC</option><option>OINSUR</option></select>
           </label>
           <label class="field">
+            <span class="field-label"><span class="bi-cn">描述</span><span class="bi-en">Description</span></span>
+            <input class="input" placeholder="选费用代码后自动带出，可改">
+          </label>
+          <label class="field">
             <span class="field-label"><span class="bi-cn">应付部门</span><span class="bi-en">Department</span></span>
             <select class="input"><option>FIS</option><option>FES</option><option>FIA</option><option>FEA</option></select>
           </label>
@@ -450,6 +477,10 @@
       </div>
 
       <p class="note">应付与应收两侧的币种各自独立，不做汇率折算。</p>
+      <p class="note">
+        估算成本与本地成本、估算收入与本地应收金额由系统按币种自动算出：
+        币种是人民币才等于原币金额，其余币种为 0.00。
+      </p>
       <p class="note">
         保存后会写入两条：一条记在填写的分支机构上（应收侧由应付侧推出），
         一条记在镜像分支上（应付侧由前一条推出、应收侧用填写的值）。
