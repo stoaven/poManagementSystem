@@ -7,10 +7,15 @@ from app.schemas.common import AuditOut
 
 
 class OptionIn(BaseModel):
-    """新建选项的载荷：code 唯一且创建后不可修改，名称可省略。"""
+    """新建/编辑选项的载荷。
+
+    code 唯一且创建后不可修改。标签按类别取：费用代码表用 description
+    （描述），其余五类用 name（名称）；另一个字段会被忽略。
+    """
 
     code: str
     name: Optional[str] = None
+    description: Optional[str] = None
 
 
 class OptionStatusIn(BaseModel):
@@ -22,12 +27,15 @@ class OptionStatusIn(BaseModel):
 class OptionOut(AuditOut):
     """一个选项项。
 
-    referenced 是引用它的未删除费用信息条数，管理列表据此提示删除影响。
+    标签按类别放在不同的字段里：费用代码表是 description，其余五类是 name；
+    另一个字段为 null。referenced 是引用它的未删除费用信息条数，
+    管理列表据此提示删除影响。
     """
 
     id: int
     code: str
-    name: str
+    name: Optional[str] = None
+    description: Optional[str] = None
     is_active: bool
     deleted: bool
     referenced: int = 0

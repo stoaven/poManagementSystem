@@ -114,9 +114,10 @@ export interface paths {
         put?: never;
         /**
          * Import Options
-         * @description 批量导入选项项：上传表头为 code 与 name 的 CSV，按 code upsert。
+         * @description 批量导入选项项：上传表头为 code 与该类标签列的 CSV，按 code upsert。
          *
-         *     code 已存在则更新名称，不存在则新增；已软删除的 code 会被跳过。
+         *     标签列按类别取：费用代码表是 description（描述），其余五类是 name（名称）。
+         *     code 已存在则更新标签，不存在则新增；已软删除的 code 会被跳过。
          */
         post: operations["import_options_api_v1_options__kind__import_post"];
         delete?: never;
@@ -164,7 +165,7 @@ export interface paths {
         head?: never;
         /**
          * Update Option
-         * @description 编辑：只允许改名称；code 一经创建不可修改。
+         * @description 编辑：只允许改标签（费用代码表是描述、其余是名称）；code 一经创建不可修改。
          */
         patch: operations["update_option_api_v1_options__kind___option_id__patch"];
         trace?: never;
@@ -609,11 +610,16 @@ export interface components {
         };
         /**
          * OptionIn
-         * @description 新建选项的载荷：code 唯一且创建后不可修改，名称可省略。
+         * @description 新建/编辑选项的载荷。
+         *
+         *     code 唯一且创建后不可修改。标签按类别取：费用代码表用 description
+         *     （描述），其余五类用 name（名称）；另一个字段会被忽略。
          */
         OptionIn: {
             /** Code */
             code: string;
+            /** Description */
+            description?: string | null;
             /** Name */
             name?: string | null;
         };
@@ -626,7 +632,9 @@ export interface components {
          * OptionOut
          * @description 一个选项项。
          *
-         *     referenced 是引用它的未删除费用信息条数，管理列表据此提示删除影响。
+         *     标签按类别放在不同的字段里：费用代码表是 description，其余五类是 name；
+         *     另一个字段为 null。referenced 是引用它的未删除费用信息条数，
+         *     管理列表据此提示删除影响。
          */
         OptionOut: {
             /** Code */
@@ -635,12 +643,14 @@ export interface components {
             created_at?: string | null;
             /** Deleted */
             deleted: boolean;
+            /** Description */
+            description?: string | null;
             /** Id */
             id: number;
             /** Is Active */
             is_active: boolean;
             /** Name */
-            name: string;
+            name?: string | null;
             /** Operator */
             operator?: string | null;
             /**

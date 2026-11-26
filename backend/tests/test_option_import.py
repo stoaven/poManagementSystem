@@ -2,6 +2,7 @@
 import io
 
 from app.models import ChargeCode, Department
+from app.repositories.option import label_column
 
 KINDS = ["charge_codes", "departments", "branches", "currencies",
          "creditors", "debtors"]
@@ -12,7 +13,7 @@ def test_import_creates_and_updates(client, admin_headers, seeded_options):
     r = client.post("/api/v1/options/charge_codes/import",
                     headers=admin_headers,
                     files={"file": ("o.csv", io.BytesIO(
-                        "code,name\nDHLF,快递国际\nOCUC,海洋附加费\nNEWC,新代码\n"
+                        "code,description\nDHLF,快递国际\nOCUC,海洋附加费\nNEWC,新代码\n"
                         .encode("utf-8")), "text/csv")})
     assert r.status_code == 200, r.text
     body = r.json()
@@ -24,7 +25,8 @@ def test_import_creates_and_updates(client, admin_headers, seeded_options):
     items = client.get("/api/v1/options/charge_codes",
                        headers=admin_headers).json()["items"]
     dhlf = next(o for o in items if o["code"] == "DHLF")
-    assert dhlf["name"] == "快递国际"       # 名称被更新
+    assert dhlf["description"] == "快递国际"   # 描述被更新（费用代码表的标签列）
+    assert dhlf["name"] is None
     assert any(o["code"] == "NEWC" for o in items)  # 新增
 
 
@@ -37,7 +39,7 @@ def test_import_skips_deleted_code(client, admin_headers, db, seeded_options):
     r = client.post("/api/v1/options/charge_codes/import",
                     headers=admin_headers,
                     files={"file": ("o.csv", io.BytesIO(
-                        "code,name\nDHLF,快递国际\nOCUC,海洋附加费\n"
+                        "code,description\nDHLF,快递国际\nOCUC,海洋附加费\n"
                         .encode("utf-8")), "text/csv")})
     assert r.status_code == 200
     body = r.json()
@@ -50,6 +52,9 @@ def test_import_skips_deleted_code(client, admin_headers, db, seeded_options):
                        params={"include_deleted": True}).json()["items"]
     dhlf = next(o for o in items if o["code"] == "DHLF")
     assert dhlf["deleted"] is True
+    # 被跳过的项不该被改写：描述仍是原来的（空 → 以 code 呈现）
+    assert dhlf["description"] == "DHLF"
+    assert dhlf["name"] is None
 
 
 def test_import_rejects_bad_header(client, admin_headers, seeded_options):
@@ -94,10 +99,12 @@ def db_has_department(code, client, admin_headers):
 def test_import_works_for_all_six_kinds(client, admin_headers, seeded_options):
     """六类选项都能批量导入。"""
     for i, kind in enumerate(KINDS):
+        from app.repositories.option import MODEL_BY_KIND
+        col = label_column(MODEL_BY_KIND[kind])
         r = client.post(f"/api/v1/options/{kind}/import",
                         headers=admin_headers,
                         files={"file": ("o.csv", io.BytesIO(
-                            f"code,name\nIMP{i},批量导入{i}\n".encode("utf-8")),
+                            f"code,{col}\nIMP{i},批量导入{i}\n".encode("utf-8")),
                             "text/csv")})
         assert r.status_code == 200, (kind, r.text)
         assert r.json()["created"] == 1, kind

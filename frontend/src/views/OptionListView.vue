@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
   createOption,
@@ -18,12 +18,38 @@ import {
 import BilingualLabel from "@/components/BilingualLabel.vue";
 
 const kind = ref<OptionKind>("charge_codes");
+
+/**
+ * 每类选项的标签列名：费用代码表用 description（描述），其余五类用 name（名称）。
+ * 列表列头、新增/编辑弹窗、导入提示都按它走。
+ */
+const LABEL_COLUMN: Record<OptionKind, "name" | "description"> = {
+  charge_codes: "description",
+  departments: "name",
+  branches: "name",
+  currencies: "name",
+  creditors: "name",
+  debtors: "name",
+};
+const labelColumn = computed(() => LABEL_COLUMN[kind.value]);
+const labelText = computed(() =>
+  labelColumn.value === "description" ? "描述" : "名称",
+);
+const labelEn = computed(() =>
+  labelColumn.value === "description" ? "Description" : "Name",
+);
+/** 取某个选项项的标签值（费用代码表在 description，其余在 name）。 */
+function labelOf(row: OptionItem): string {
+  const v = labelColumn.value === "description" ? row.description : row.name;
+  return v || row.code;
+}
 const items = ref<OptionItem[]>([]);
 const loading = ref(false);
 
 const dialogVisible = ref(false);
 const editingId = ref<number | null>(null);
-const form = ref({ code: "", name: "" });
+/** 表单里的标签字段：提交时按类别落到 name 或 description。 */
+const form = ref({ code: "", label: "" });
 const saving = ref(false);
 const importing = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
@@ -34,8 +60,9 @@ function pickFile() {
 }
 
 /**
- * 选中 CSV 后批量导入：表头必须是 code 与 name。
- * 已存在的 code 更新名称，不存在的 code 新增。
+ * 选中 CSV 后批量导入：表头必须是 code 与该类的标签列
+ * （费用代码表是 description，其余五类是 name）。
+ * 已存在的 code 更新标签，不存在的 code 新增。
  */
 async function onFilePicked(event: Event) {
   const input = event.target as HTMLInputElement;
@@ -81,13 +108,14 @@ function onKindChange() {
 
 function openCreate() {
   editingId.value = null;
-  form.value = { code: "", name: "" };
+  form.value = { code: "", label: "" };
   dialogVisible.value = true;
 }
 
 function openEdit(row: OptionItem) {
   editingId.value = row.id;
-  form.value = { code: row.code, name: row.name === row.code ? "" : row.name };
+  const label = labelOf(row);
+  form.value = { code: row.code, label: label === row.code ? "" : label };
   dialogVisible.value = true;
 }
 
@@ -99,17 +127,16 @@ async function onSave() {
   }
   saving.value = true;
   try {
+    const label = form.value.label.trim() || null;
+    // 费用代码表的标签是 description，其余五类是 name
+    const body = labelColumn.value === "description"
+      ? { code, description: label }
+      : { code, name: label };
     if (editingId.value !== null) {
-      await updateOption(kind.value, editingId.value, {
-        code,
-        name: form.value.name.trim() || null,
-      });
+      await updateOption(kind.value, editingId.value, body);
       ElMessage.success("已保存");
     } else {
-      await createOption(kind.value, {
-        code,
-        name: form.value.name.trim() || null,
-      });
+      await createOption(kind.value, body);
       ElMessage.success("已新增");
     }
     dialogVisible.value = false;
@@ -172,7 +199,7 @@ onMounted(load);
       </div>
       <div class="page-actions">
         <el-button
-          title="上传表头为 code 与 name 的 CSV，按 code 批量新增或更新"
+          :title="`上传表头为 code 与 ${labelColumn} 的 CSV，按 code 批量新增或更新`"
           :loading="importing"
           @click="pickFile"
         >
@@ -214,10 +241,10 @@ onMounted(load);
         </el-table-column>
         <el-table-column min-width="160">
           <template #header>
-            <BilingualLabel label="名称" en="Name" />
+            <BilingualLabel :label="labelText" :en="labelEn" />
           </template>
           <template #default="{ row }">
-            <span>{{ row.name }}</span>
+            <span>{{ labelOf(row) }}</span>
           </template>
         </el-table-column>
         <el-table-column width="110">
@@ -296,12 +323,12 @@ onMounted(load);
             placeholder="唯一代码，创建后不可修改"
           />
           <span v-if="editingId !== null" class="hint">
-            代码一经创建不可修改，只可改名称。
+            代码一经创建不可修改，只可改{{ labelText }}。
           </span>
         </label>
         <label class="field">
-          <BilingualLabel label="名称" en="Name" />
-          <el-input v-model="form.name" placeholder="留空时以代码呈现" />
+          <BilingualLabel :label="labelText" :en="labelEn" />
+          <el-input v-model="form.label" placeholder="留空时以代码呈现" />
         </label>
       </div>
       <template #footer>

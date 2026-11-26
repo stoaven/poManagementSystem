@@ -94,8 +94,9 @@ export async function setOptionActive(
 }
 
 /**
- * 批量导入：上传表头为 code 与 name 的 CSV，按 code upsert
- * （已存在则更新名称，不存在则新增）。
+ * 批量导入：上传表头为 code 与标签列的 CSV，按 code upsert
+ * （已存在则更新标签，不存在则新增）。
+ * 费用代码表的标签列是 description，其余五类是 name。
  */
 export async function importOptions(
   kind: OptionKind,

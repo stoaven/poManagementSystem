@@ -52,46 +52,55 @@ class ChargeInfo(Base, AuditMixin):
 
 
 class OptionMixin(AuditMixin):
-    """六张选项表的公共列。子类补 __tablename__ 与 code 唯一约束。"""
+    """六张选项表的公共列。子类补 __tablename__ 与 code 唯一约束。
+
+    「名称」列不在这里：费用代码表用的是 description，其余五类用 name。
+    """
 
     code: Mapped[str] = mapped_column(String(64))
-    name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     is_active: Mapped[bool] = mapped_column(nullable=False, default=True, server_default="1")
 
 
+class NamedOptionMixin(OptionMixin):
+    """带「名称」列的选项表（应付部门、分支机构、币种、应付对象、应收对象）。"""
+
+    name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+
+
 class ChargeCode(OptionMixin, Base):
-    """费用代码选项表。"""
+    """费用代码选项表：第二列是 description（描述），不是 name。"""
 
     __tablename__ = "charge_codes"
     __table_args__ = (UniqueConstraint("code", name="uk_charge_codes_code"),)
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    description: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
 
 
-class Department(OptionMixin, Base):
+class Department(NamedOptionMixin, Base):
     __tablename__ = "departments"
     __table_args__ = (UniqueConstraint("code", name="uk_departments_code"),)
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
 
-class BranchOption(OptionMixin, Base):
+class BranchOption(NamedOptionMixin, Base):
     __tablename__ = "branches"
     __table_args__ = (UniqueConstraint("code", name="uk_branches_code"),)
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
 
-class Currency(OptionMixin, Base):
+class Currency(NamedOptionMixin, Base):
     __tablename__ = "currencies"
     __table_args__ = (UniqueConstraint("code", name="uk_currencies_code"),)
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
 
-class Creditor(OptionMixin, Base):
+class Creditor(NamedOptionMixin, Base):
     __tablename__ = "creditors"
     __table_args__ = (UniqueConstraint("code", name="uk_creditors_code"),)
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
 
-class Debtor(OptionMixin, Base):
+class Debtor(NamedOptionMixin, Base):
     __tablename__ = "debtors"
     __table_args__ = (UniqueConstraint("code", name="uk_debtors_code"),)
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)

@@ -27,6 +27,14 @@ MODEL_BY_KIND = {
     "debtors": Debtor,
 }
 
+
+def label_column(model) -> str:
+    """该类选项的「标签列」名。
+
+    费用代码表用的是 description（描述），其余五类用 name（名称）。
+    """
+    return "description" if hasattr(model, "description") else "name"
+
 # 选项类别标识 -> 费用信息表中承载它的列（一个类别可能对应多列：币种分两侧）
 KIND_TO_COLUMN = {
     "charge_codes": ("charge_code",),

@@ -2,14 +2,18 @@
 
 路由只做取数与判权限，规则集中在这里，便于独立测试。
 """
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from fastapi import HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models import ChargeInfo, User
-from app.repositories.option import KIND_TO_COLUMN, MODEL_BY_KIND
+from app.repositories.option import (
+    KIND_TO_COLUMN,
+    MODEL_BY_KIND,
+    label_column,
+)
 
 
 def _model(kind: str):
@@ -20,11 +24,16 @@ def _model(kind: str):
 
 
 def to_dict(o, referenced: int = 0) -> dict:
-    """选项项 → 接口响应。名称省略时以 code 呈现。"""
-    return {
+    """选项项 → 接口响应。
+
+    标签按各自的列名返回：费用代码表是 description，其余五类是 name；
+    标签省略时以 code 呈现。
+    """
+    d = {
         "id": o.id,
         "code": o.code,
-        "name": o.name or o.code,
+        "name": None,
+        "description": None,
         "is_active": o.is_active,
         "deleted": o.status == 1,
         "operator": o.operator,
@@ -32,6 +41,23 @@ def to_dict(o, referenced: int = 0) -> dict:
         "updated_at": o.updated_at.isoformat() if o.updated_at else None,
         "referenced": referenced,
     }
+    col = label_column(type(o))
+    d[col] = getattr(o, col) or o.code
+    return d
+
+
+def label_of(kind: str, body) -> Tuple[Optional[str], bool]:
+    """从请求里取出该类选项的标签值，以及这次请求是否带了这个字段。
+
+    费用代码表取 description，其余五类取 name——另一个字段被忽略。
+    带上但值为空，是「清空标签」；没带，是「不改标签」，两者要分得开。
+    """
+    m = _model(kind)
+    col = label_column(m)
+    data = body.model_dump(exclude_unset=True)
+    if col in data:
+        return data[col], True
+    return None, False
 
 
 def reference_counts(db: Session, kind: str) -> Dict[str, int]:
@@ -75,15 +101,17 @@ def admin_list(db: Session, kind: str, include_deleted: bool = False) -> List[di
 
 
 def candidate_list(db: Session, kind: str, q: str = "") -> List[dict]:
-    """候选列表（仅启用未删除），支持按 code/name 关键字过滤。"""
+    """候选列表（仅启用未删除），支持按 code/标签关键字过滤。"""
     m = _model(kind)
     query = db.query(m).filter(m.status == 0, m.is_active.is_(True))
     if q:
-        query = query.filter(m.code.contains(q) | m.name.contains(q))
+        # 费用代码表的标签列是 description，其余是 name——按各自那一列过滤
+        label_col = getattr(m, label_column(m))
+        query = query.filter(m.code.contains(q) | label_col.contains(q))
     return [to_dict(o) for o in query.order_by(m.code).all()]
 
 
-def create(db: Session, kind: str, code: str, name: Optional[str],
+def create(db: Session, kind: str, code: str, label: Optional[str],
            admin: User) -> dict:
     m = _model(kind)
     code = (code or "").strip()
@@ -91,22 +119,29 @@ def create(db: Session, kind: str, code: str, name: Optional[str],
         raise HTTPException(status_code=422, detail="缺少 code")
     if db.query(m).filter(m.code == code).first():
         raise HTTPException(status_code=409, detail="该代码已被使用")
-    o = m(code=code, name=name, is_active=True, operator=admin.phone)
+    o = m(code=code, is_active=True, operator=admin.phone)
+    setattr(o, label_column(m), label)
     db.add(o)
     db.flush()
     return to_dict(o)
 
 
 def update(db: Session, kind: str, option_id: int, code: str,
-           name: Optional[str], admin: User) -> dict:
-    """只允许改名称；code 一经创建不可修改（业务字段存的就是 code）。"""
+           label: Optional[str], admin: User,
+           label_provided: bool = True) -> dict:
+    """只允许改标签（费用代码表是描述、其余是名称）；code 一经创建不可修改。
+
+    label_provided 为假表示这次请求没带标签字段——保持原值不动；
+    带上但传空则是清空标签，页面上会以代码呈现。
+    """
     m = _model(kind)
     o = db.get(m, option_id)
     if not o or o.status != 0:
         raise HTTPException(status_code=404, detail="该选项不存在")
     if code and code.strip() and code.strip() != o.code:
         raise HTTPException(status_code=409, detail="代码不可修改")
-    o.name = name if name is not None else o.name
+    if label_provided:
+        setattr(o, label_column(m), label)
     o.operator = admin.phone
     return to_dict(o)
 

@@ -48,9 +48,10 @@ def candidates(_: User = Depends(get_current_user), db: Session = Depends(get_db
 def import_options(kind: str, file: UploadFile = File(...),
                    admin: User = Depends(require_admin),
                    db: Session = Depends(get_db)):
-    """批量导入选项项：上传表头为 code 与 name 的 CSV，按 code upsert。
+    """批量导入选项项：上传表头为 code 与该类标签列的 CSV，按 code upsert。
 
-    code 已存在则更新名称，不存在则新增；已软删除的 code 会被跳过。
+    标签列按类别取：费用代码表是 description（描述），其余五类是 name（名称）。
+    code 已存在则更新标签，不存在则新增；已软删除的 code 会被跳过。
     """
     content = file.file.read()
     return import_svc.import_options(db, kind, content, admin)
@@ -82,14 +83,17 @@ def candidate_list(kind: str, q: str = "", _: User = Depends(get_current_user),
 @router.post("/{kind}", status_code=201, response_model=OptionOut)
 def create_option(kind: str, body: OptionIn, admin: User = Depends(require_admin),
                   db: Session = Depends(get_db)):
-    return svc.create(db, kind, body.code, body.name, admin)
+    label, _provided = svc.label_of(kind, body)
+    return svc.create(db, kind, body.code, label, admin)
 
 
 @router.patch("/{kind}/{option_id}", response_model=OptionOut)
 def update_option(kind: str, option_id: int, body: OptionIn,
                   admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    """编辑：只允许改名称；code 一经创建不可修改。"""
-    return svc.update(db, kind, option_id, body.code, body.name, admin)
+    """编辑：只允许改标签（费用代码表是描述、其余是名称）；code 一经创建不可修改。"""
+    label, provided = svc.label_of(kind, body)
+    return svc.update(db, kind, option_id, body.code, label, admin,
+                      label_provided=provided)
 
 
 @router.patch("/{kind}/{option_id}/status", response_model=OptionOut)

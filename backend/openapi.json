@@ -505,11 +505,22 @@
         "type": "object"
       },
       "OptionIn": {
-        "description": "新建选项的载荷：code 唯一且创建后不可修改，名称可省略。",
+        "description": "新建/编辑选项的载荷。\n\ncode 唯一且创建后不可修改。标签按类别取：费用代码表用 description\n（描述），其余五类用 name（名称）；另一个字段会被忽略。",
         "properties": {
           "code": {
             "title": "Code",
             "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
           },
           "name": {
             "anyOf": [
@@ -546,7 +557,7 @@
         "type": "object"
       },
       "OptionOut": {
-        "description": "一个选项项。\n\nreferenced 是引用它的未删除费用信息条数，管理列表据此提示删除影响。",
+        "description": "一个选项项。\n\n标签按类别放在不同的字段里：费用代码表是 description，其余五类是 name；\n另一个字段为 null。referenced 是引用它的未删除费用信息条数，\n管理列表据此提示删除影响。",
         "properties": {
           "code": {
             "title": "Code",
@@ -567,6 +578,17 @@
             "title": "Deleted",
             "type": "boolean"
           },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
           "id": {
             "title": "Id",
             "type": "integer"
@@ -576,8 +598,15 @@
             "type": "boolean"
           },
           "name": {
-            "title": "Name",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
           },
           "operator": {
             "anyOf": [
@@ -615,7 +644,6 @@
         "required": [
           "id",
           "code",
-          "name",
           "is_active",
           "deleted"
         ],
@@ -1337,7 +1365,7 @@
     },
     "/api/v1/options/{kind}/import": {
       "post": {
-        "description": "批量导入选项项：上传表头为 code 与 name 的 CSV，按 code upsert。\n\ncode 已存在则更新名称，不存在则新增；已软删除的 code 会被跳过。",
+        "description": "批量导入选项项：上传表头为 code 与该类标签列的 CSV，按 code upsert。\n\n标签列按类别取：费用代码表是 description（描述），其余五类是 name（名称）。\ncode 已存在则更新标签，不存在则新增；已软删除的 code 会被跳过。",
         "operationId": "import_options_api_v1_options__kind__import_post",
         "parameters": [
           {
@@ -1493,7 +1521,7 @@
         ]
       },
       "patch": {
-        "description": "编辑：只允许改名称；code 一经创建不可修改。",
+        "description": "编辑：只允许改标签（费用代码表是描述、其余是名称）；code 一经创建不可修改。",
         "operationId": "update_option_api_v1_options__kind___option_id__patch",
         "parameters": [
           {

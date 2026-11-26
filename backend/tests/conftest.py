@@ -114,6 +114,7 @@ def seeded_options(db):
         Debtor,
         Department,
     )
+    from app.repositories.option import label_column
 
     rows = []
     for m, codes in [
@@ -125,8 +126,9 @@ def seeded_options(db):
         (Debtor, ["CNSHO", "CNSHL", "中远海运集运", "其它客户"]),
     ]:
         for code in codes:
-            o = m(code=code, name=None, is_active=True, status=0,
-                  operator="13800000001")
+            # 费用代码表的标签列是 description，其余五类是 name
+            o = m(code=code, is_active=True, status=0, operator="13800000001")
+            setattr(o, label_column(m), None)
             db.add(o)
             rows.append(o)
     for code in ["SHL", "SHO"]:

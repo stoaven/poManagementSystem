@@ -102,11 +102,11 @@ npm run dev
 | GET | `/options/{kind}` | admin | 选项管理列表（**默认已过滤掉已软删除的项**，含已停用项，附被引用条数） |
 | GET | `/options/{kind}/options` | 登录 | 候选列表（仅启用未删除，支持关键字过滤） |
 | POST | `/options/{kind}` | admin | 新增选项 |
-| PATCH | `/options/{kind}/{id}` | admin | 改名称（code 创建后不可修改） |
+| PATCH | `/options/{kind}/{id}` | admin | 改标签（费用代码表是描述，其余是名称；code 创建后不可修改） |
 | PATCH | `/options/{kind}/{id}/status` | admin | 启用/停用 |
 | GET | `/options/{kind}/{id}/references` | admin | 删除前的引用数量预检 |
 | DELETE | `/options/{kind}/{id}` | admin | 软删除（返回删除前的引用数量） |
-| POST | `/options/{kind}/import` | admin | 批量导入选项（上传 code/name 的 CSV，按 code upsert） |
+| POST | `/options/{kind}/import` | admin | 批量导入选项（上传 code/标签列 的 CSV，按 code upsert） |
 | GET | `/shipments` | 登录 | 货运订单列表（分页 + 关键字 + 业务状态；**不返回任何金额**） |
 | POST | `/shipments` | 登录 | 新建货运订单（单号全局唯一，不区分大小写） |
 | GET | `/shipments/{id}` | 登录 | 订单详情：其下全部费用信息（不做金额合计） |
@@ -149,6 +149,9 @@ npm run dev
 | `creditors` | `creditors` | 应付对象 | `CNSHL` `CNSHO` `MAERSK` `中远海运物流` |
 | `debtors` | `debtors` | 应收对象 | `CNSHO` `CNSHL` `中远海运集运` `其它客户` |
 
+费用代码表的第二列是**描述**（`description`），其余五类是**名称**（`name`）——
+页面的列头、新增/编辑弹窗与批量导入的 CSV 表头都按这个区分。
+
 ## 权限模型
 
 只有两级：`admin` 与 `normal`。
@@ -167,10 +170,11 @@ npm run dev
 选项维护页有「批量导入」按钮，上传一份 CSV 即可批量写入**当前这一类**选项
 （六类都支持）。CSV 要求：
 
-- 表头两列：`code` 与 `name`（列序不限、大小写不敏感，UTF-8 编码，可带 BOM）
+- 表头两列：`code` 与该类的标签列——**费用代码表是 `description`（描述）**，
+  其余五类是 `name`（名称）（列序不限、大小写不敏感，UTF-8 编码，可带 BOM）
 - 一行一个选项，`code` 不能为空
 
-导入按 `code` **upsert**：已存在的 `code` 更新它的名称，不存在的 `code` 新增。
+导入按 `code` **upsert**：已存在的 `code` 更新它的标签，不存在的 `code` 新增。
 已软删除的 `code` 会被**跳过**（不复活），导入结果里会报告跳过了几条。
 导入完页面会提示「新增 X 条，更新 Y 条」，有问题的行单独提示。
 

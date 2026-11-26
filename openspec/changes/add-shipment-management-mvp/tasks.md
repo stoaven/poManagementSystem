@@ -123,7 +123,7 @@
 
 ## 19. 选项数据批量导入
 
-- [x] 19.1 实现 `app/services/option_import_service.py`：解析表头为 code 与 name 的 CSV（容忍 BOM、CRLF、列序与大小写），按 code upsert——已存在则更新名称、不存在则新增；已软删除的 code 跳过不复活；返回新增/更新/跳过数与出错的行，验证测试覆盖：新增与更新、表头不对返回 422、无 code 的行报错、BOM 与 CRLF 能读、六类都支持、未知类别 404、普通用户 403
+- [x] 19.1 实现 `app/services/option_import_service.py`：解析表头为 code 与该类标签列的 CSV（费用代码表为 description，其余五类为 name；容忍 BOM、CRLF、列序与大小写），按 code upsert——已存在则更新标签、不存在则新增；已软删除的 code 跳过不复活；返回新增/更新/跳过数与出错的行，验证测试覆盖：新增与更新、表头不对返回 422、无 code 的行报错、BOM 与 CRLF 能读、六类都支持、未知类别 404、普通用户 403
 - [x] 19.2 实现 `POST /api/v1/options/{kind}/import`（multipart 上传，admin-only），验证：能收到文件并落库，返回统计结果
 - [x] 19.3 前端选项页加「批量导入」按钮与隐藏的文件选择框，选中 CSV 后上传并提示「新增 X 条，更新 Y 条」，出错行另给警告，导入后刷新列表，验证 Vitest 测试覆盖：选中文件调用导入接口并刷新列表
 - [x] 19.4 新增依赖 python-multipart==0.0.20（已 pin 进 requirements）
@@ -153,6 +153,15 @@
 - [x] 16.4 端到端冒烟验证（选项维护）——已脚本化为 `backend/tests/test_e2e_options.py`：在选项维护页新增一个应付部门值 → 回到费用信息录入确认该值出现在下拉且可保存 → 停用该值后确认它从下拉消失 → 确认引用了该值的已有记录仍能正常编辑保存 → 删除该值前确认返回引用数量 → 删除后确认引用它的记录再保存被拒绝
 - [x] 16.5 运行全量校验：后端 `pytest`（50 个用例）与前端 `npm test`（46 个用例）全部通过、`npm run build` 成功产出 `dist/`，验证 CI 与本地结果一致
 - [x] 16.6 更新根 `README.md` 补充完整接口清单、权限矩阵、六类选项表说明与初始数据/管理员初始化命令，验证 README 中每条命令均可在干净环境下执行成功
+
+## 21. 费用代码表的标签列改为「描述」
+
+- [x] 21.1 `charge_codes` 表的 `name` 列改名为 `description`（Alembic 用 `alter_column(new_column_name=...)` 重命名，**不丢已有内容**），其余五类选项表仍用 `name`，验证：开发库 513 条费用代码的描述全部保留
+- [x] 21.2 选项接口按类别取标签列：请求体带 `description`（费用代码）或 `name`（其余），响应体两个字段都有、另一个为 null；标签留空以代码呈现，验证：`backend/tests/test_option_charge_code_description.py` 覆盖六类的新增、清空与「不带标签字段则原值不动」
+- [x] 21.3 候选列表按各自那一列过滤关键字（费用代码表没有 `name` 列，过滤不能报错），验证：`/options/charge_codes/options?q=...` 返回 200
+- [x] 21.4 批量导入的 CSV 表头按类别取：费用代码表 `code,description`，其余五类 `code,name`，验证：六类逐类导入测试（新增 / 更新 / 跳过 / 表头不对 422）全部通过
+- [x] 21.5 前端选项页的列头、新增编辑弹窗与导入提示按类别切换「描述 / Description」与「名称 / Name」，提交时费用代码发 `description`、其余发 `name`，验证：Vitest 覆盖列头、导入提示与两种提交载荷
+- [x] 21.6 同步规格（`option-lists` delta spec、design D5）、根 README、原型（`prototype/index.html` 与其 README），验证：`openspec validate --strict` 通过
 
 ## Workflow follow-up
 

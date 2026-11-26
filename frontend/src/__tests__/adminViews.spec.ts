@@ -188,6 +188,91 @@ describe("选项维护页", () => {
     expect(listOptions).toHaveBeenCalledWith("charge_codes");
   });
 
+  it("费用代码页签的标签列是「描述 / Description」", async () => {
+    listOptions.mockResolvedValue([
+      { ...OPTION, name: null, description: "快递国际" },
+    ]);
+    const w = mountView(OptionListView);
+    await flushPromises();
+    const text = w.text();
+    expect(text).toContain("描述");
+    expect(text).toContain("Description");
+    expect(text).toContain("快递国际");
+    // 费用代码表不用「名称」这一列
+    expect(text).not.toContain("Name");
+  });
+
+  it("其余五类的标签列是「名称 / Name」", async () => {
+    listOptions.mockResolvedValue([
+      { ...OPTION, name: "应付部门甲", description: null },
+    ]);
+    const w = mountView(OptionListView);
+    await flushPromises();
+    await w.findAll(".tab")[1].trigger("click");
+    await flushPromises();
+    const text = w.text();
+    expect(text).toContain("名称");
+    expect(text).toContain("Name");
+    expect(text).toContain("应付部门甲");
+    expect(text).not.toContain("Description");
+  });
+
+  it("批量导入的表头提示按类别变化", async () => {
+    listOptions.mockResolvedValue([]);
+    const w = mountView(OptionListView);
+    await flushPromises();
+    const btn = () =>
+      w.findAll("button").find((b) => b.text() === "批量导入")!;
+    expect(btn().attributes("title")).toContain("description");
+    await w.findAll(".tab")[1].trigger("click");
+    await flushPromises();
+    expect(btn().attributes("title")).toContain("name");
+  });
+
+  it("新增费用代码提交 description，新增部门提交 name", async () => {
+    listOptions.mockResolvedValue([]);
+    const w = mountView(OptionListView);
+    await flushPromises();
+
+    async function fillAndSave(code: string, label: string) {
+      await w
+        .findAll("button")
+        .find((b) => b.text() === "新增选项")!
+        .trigger("click");
+      await flushPromises();
+      // el-dialog 默认就地渲染（不 append-to-body），在 wrapper 内找
+      const inputs = w
+        .findAll<HTMLInputElement>(".el-dialog input")
+        .map((i) => i.element);
+      expect(inputs.length).toBe(2);
+      inputs[0].value = code;
+      inputs[0].dispatchEvent(new Event("input"));
+      inputs[1].value = label;
+      inputs[1].dispatchEvent(new Event("input"));
+      await flushPromises();
+      const save = w
+        .findAll<HTMLButtonElement>(".el-dialog button")
+        .find((b) => b.text() === "保存");
+      expect(save).toBeTruthy();
+      await save!.trigger("click");
+      await flushPromises();
+    }
+
+    await fillAndSave("NEWCC", "新描述");
+    expect(createOption).toHaveBeenCalledWith("charge_codes", {
+      code: "NEWCC",
+      description: "新描述",
+    });
+
+    await w.findAll(".tab")[1].trigger("click");
+    await flushPromises();
+    await fillAndSave("NEWD", "新名称");
+    expect(createOption).toHaveBeenCalledWith("departments", {
+      code: "NEWD",
+      name: "新名称",
+    });
+  });
+
   it("用户取消删除就不删", async () => {
     listOptions.mockResolvedValue([OPTION]);
     fetchOptionReferences.mockResolvedValue(0);
