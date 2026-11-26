@@ -22,6 +22,7 @@ poManagementSystem/
 │   └── tests/          pytest 测试
 ├── frontend/           Vue 3 + Element Plus 单页应用
 ├── prototype/          静态高保真原型（可直接打开 index.html 查看）
+├── deploy/             部署件：部署脚本、nginx 配置、systemd 单元、compose 文件
 ├── docker-compose.yml  本地 MySQL 8
 ├── .github/workflows/  CI：pytest / vitest / 契约一致性
 └── openspec/           规格与变更文档
@@ -71,6 +72,17 @@ npm run dev
 ```
 
 开发期通过 Vite dev server 的 proxy 把 `/api` 转发到后端，无需额外配置跨域。
+
+## 部署
+
+部署手册在 [`deploy/README.md`](deploy/README.md)，两条路线：
+
+- **裸机**：nginx 托管前端构建产物 + systemd 跑 uvicorn，发版跑
+  `sudo deploy/deploy.sh`（拉代码 → 迁移 → 构建 → 重启 → 探活）。
+- **Docker**：`docker compose --env-file deploy/.env.prod -f deploy/docker-compose.prod.yml up -d --build`。
+
+两条路线都遵循「**先应用数据库迁移，再重启后端**」——新代码依赖
+`charge_info` 的新列。
 
 ## 常用命令
 

@@ -13,6 +13,8 @@ venv/
 .env
 .env.*
 !.env.example
+# 部署用的配置样例要入库，真正的 .env.prod 不入库
+!deploy/.env.prod.example
 
 # Node
 node_modules/

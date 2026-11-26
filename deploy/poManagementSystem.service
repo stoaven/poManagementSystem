@@ -1,0 +1,44 @@
+[Unit]
+Description=货运订单费用管理 API（FastAPI + uvicorn）
+Documentation=https://github.com/stoaven/poManagementSystem
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+
+# 代码目录：改成你服务器上的实际路径（deploy.sh 里的 APP_DIR 保持一致）
+WorkingDirectory=/srv/poManagementSystem/backend
+
+# 应用自己的配置（DATABASE_URL / JWT_SECRET / CORS_ORIGINS）。
+# 前缀的「-」表示文件不存在也不报错——但生产上它必须存在。
+EnvironmentFile=-/srv/poManagementSystem/backend/.env
+
+# 代码目录由 root 拥有，应用不必写 .pyc
+Environment=PYTHONDONTWRITEBYTECODE=1
+
+# 只监听回环地址：对外由 nginx 反代
+ExecStart=/srv/poManagementSystem/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2
+
+Restart=always
+RestartSec=3
+TimeoutStopSec=30
+KillSignal=SIGINT
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=poManagementSystem
+
+# 基本加固：应用不需要写系统目录，也不需要写用户目录
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

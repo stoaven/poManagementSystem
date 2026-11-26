@@ -1,0 +1,67 @@
+# 线上整套（Docker 路线）：MySQL + 迁移 + 后端 + nginx（前端）
+#
+# 用法：
+#   cp deploy/.env.prod.example deploy/.env.prod   # 改 JWT_SECRET、MYSQL_ROOT_PASSWORD
+#   docker compose --env-file deploy/.env.prod -f deploy/docker-compose.prod.yml up -d --build
+#   docker compose --env-file deploy/.env.prod -f deploy/docker-compose.prod.yml logs -f backend
+#
+# 说明：
+#   - migrate 是一次性服务：先跑 alembic upgrade head，成功退出后 backend 才启动，
+#     免得多副本同时抢着改表结构。
+#   - db 不对外暴露端口，只有内部服务访问；对外只有 frontend 的 80 端口。
+#   - 前端是构建产物，代码更新后重新 build 一次 frontend 镜像即可。
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请在 deploy/.env.prod 里设置 MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-shipment_mgmt}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  migrate:
+    build:
+      context: ../backend
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD}@db:3306/${MYSQL_DATABASE:-shipment_mgmt}?charset=utf8mb4
+      JWT_SECRET: ${JWT_SECRET:?请在 deploy/.env.prod 里设置 JWT_SECRET}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  backend:
+    build:
+      context: ../backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD}@db:3306/${MYSQL_DATABASE:-shipment_mgmt}?charset=utf8mb4
+      JWT_SECRET: ${JWT_SECRET:?请在 deploy/.env.prod 里设置 JWT_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    expose:
+      - "8000"
+
+  frontend:
+    build:
+      context: ../frontend
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    depends_on:
+      - backend
+
+volumes:
+  db_data:

@@ -1,0 +1,5 @@
+# 开发/测试依赖：跑 pytest 用（后端镜像只装 requirements.txt）
+-r requirements.txt
+
+pytest==8.3.4
+httpx==0.28.1
