@@ -16,11 +16,11 @@ from app.models import ChargeInfo
 EXPORT_HEADERS: List[str] = [
     "Charge Code",
     "Description",
-    "Branch",
     "Department",
+    "Branch",
     "Cost Currency",
-    "OS Cost Amt",
     "Estimated Cost",
+    "OS Cost Amt",
     "Local Cost Amt",
     "Creditor",
     "Sell Currency",
@@ -34,7 +34,7 @@ EXPORT_HEADERS: List[str] = [
 AMOUNT_COLUMNS = (6, 7, 8, 11, 12, 13)
 
 # 列宽：按表头长度给个下限，长文本留宽一点
-COLUMN_WIDTHS = [14, 28, 12, 14, 14, 14, 16, 15, 16, 14, 14, 17, 15, 18]
+COLUMN_WIDTHS = [14, 28, 14, 12, 14, 16, 14, 15, 16, 14, 14, 17, 15, 18]
 
 
 def _amount(value) -> Optional[float]:
@@ -57,11 +57,11 @@ def build_charge_info_workbook(lines: Iterable[ChargeInfo]) -> bytes:
         ws.append([
             line.charge_code,
             line.description,
-            line.branch,
             line.department,
+            line.branch,
             line.cost_currency,
-            _amount(line.os_cost_amt),
             _amount(line.estimated_cost),
+            _amount(line.os_cost_amt),
             _amount(line.local_cost_amt),
             line.creditor,
             line.sell_currency,

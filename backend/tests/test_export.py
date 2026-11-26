@@ -21,8 +21,8 @@ def test_export_returns_xlsx_with_english_headers(client, admin_headers,
     ws = _load(r.content)
     headers = [c.value for c in ws[1]]
     assert headers == [
-        "Charge Code", "Description", "Branch", "Department",
-        "Cost Currency", "OS Cost Amt", "Estimated Cost",
+        "Charge Code", "Description", "Department", "Branch",
+        "Cost Currency", "Estimated Cost", "OS Cost Amt",
         "Local Cost Amt", "Creditor", "Sell Currency", "OS Sell Amt",
         "Estimated Revenue", "Local Sell Amt", "Debtor",
     ]
@@ -52,11 +52,11 @@ def test_export_rows_match_charge_info(client, admin_headers, db, admin_user,
     first = rows[0]
     assert first[0] == "DHLF"                        # Charge Code
     assert first[1] == "快递国际"                     # Description
-    assert first[2] == "SHL"                         # Branch
-    assert first[3] == "FIS"                         # Department
+    assert first[2] == "FIS"                         # Department
+    assert first[3] == "SHL"                         # Branch
     assert first[4] == "USD"                         # Cost Currency
-    assert first[5] == 8600                          # OS Cost Amt 是数字
-    assert first[6] == 0                             # Estimated Cost 是数字
+    assert first[5] == 0                             # Estimated Cost 是数字
+    assert first[6] == 8600                          # OS Cost Amt 是数字
     assert first[7] == 0                             # Local Cost Amt 是数字
     assert first[8] == "CNSHL"                       # Creditor
     assert first[9] == "CNY"                         # Sell Currency
@@ -68,7 +68,8 @@ def test_export_rows_match_charge_info(client, admin_headers, db, admin_user,
     second = rows[1]
     assert second[0] == "OCUC"
     assert second[1] == "清关费"
-    assert second[6] == 2280                         # 应付币种是 CNY
+    assert second[5] == 2280                         # 应付币种是 CNY：估算成本
+    assert second[6] == 2280                         # 应付币种是 CNY：应付金额
     assert second[11] == 0                           # 应收币种是 USD
 
 

@@ -159,6 +159,19 @@ describe("货运订单详情页", () => {
     // 描述与四个折算后金额都展示出来
     expect(text).toContain("快递国际");
     expect(text).toContain("61,400.00");
+
+    // 十四栏的顺序：费用代码、描述、部门、分支机构、两侧币种与金额、四个折算金额
+    const order = [
+      "Charge Code", "Description", "Department", "Branch", "Cost Currency",
+      "Estimated Cost", "OS Cost Amt", "Local Cost Amt", "Creditor",
+      "Sell Currency", "OS Sell Amt", "Estimated Revenue", "Local Sell Amt",
+      "Debtor", "Actions",
+    ];
+    const ths = w.findAll(".el-table__header th");
+    expect(ths).toHaveLength(15);
+    ths.forEach((th, i) => {
+      expect(th.text()).toContain(order[i]);
+    });
   });
 
   it("不再提供「添加关联费用」操作", async () => {

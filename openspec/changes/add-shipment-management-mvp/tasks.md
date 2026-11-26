@@ -169,7 +169,7 @@
 - [x] 22.2 新增费用信息时两条记录的描述都是页面填的值（页面没填则从费用代码表带出），验证：`backend/tests/test_charge_info_estimated.py`
 - [x] 22.3 四个折算后金额按**每条记录自己**的币种算：应付币种为 CNY 时估算成本 = 本地成本 = 该条应付金额，否则都是 0.00；应收币种为 CNY 时估算收入 = 本地应收金额 = 该条应收金额，否则都是 0.00，验证：四种币种组合的参数化测试
 - [x] 22.4 编辑时改了币种或金额要重算这四个数，验证：编辑测试
-- [x] 22.5 详情页表格与导出 Excel 都改成十四栏（`Charge Code`、`Description`、`Branch`、`Department`、`Cost Currency`、`OS Cost Amt`、`Estimated Cost`、`Local Cost Amt`、`Creditor`、`Sell Currency`、`OS Sell Amt`、`Estimated Revenue`、`Local Sell Amt`、`Debtor`），导出不再带任务码列
+- [x] 22.5 详情页表格与导出 Excel 都改成十四栏，顺序一致：`Charge Code`、`Description`、`Department`、`Branch`、`Cost Currency`、`Estimated Cost`、`OS Cost Amt`、`Local Cost Amt`、`Creditor`、`Sell Currency`、`OS Sell Amt`、`Estimated Revenue`、`Local Sell Amt`、`Debtor`，导出不再带任务码列
 - [x] 22.6 新增费用信息弹窗在费用代码旁加描述输入框，选了费用代码自动带出该代码的描述（可改），验证：Vitest 覆盖自动带出与提交载荷
 
 ## Workflow follow-up

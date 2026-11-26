@@ -198,8 +198,8 @@ npm run dev
 `.xlsx` 文件。表头用**上游英文字段名**：
 
 ```
-Charge Code | Description | Branch | Department | Cost Currency |
-OS Cost Amt | Estimated Cost | Local Cost Amt | Creditor | Sell Currency |
+Charge Code | Description | Department | Branch | Cost Currency |
+Estimated Cost | OS Cost Amt | Local Cost Amt | Creditor | Sell Currency |
 OS Sell Amt | Estimated Revenue | Local Sell Amt | Debtor
 ```
 

@@ -205,20 +205,20 @@ watch(() => route.params.id, load);
             <span>{{ row.description ?? "—" }}</span>
           </template>
         </el-table-column>
-        <el-table-column min-width="80">
-          <template #header>
-            <BilingualLabel label="分支机构" en="Branch" />
-          </template>
-          <template #default="{ row }">
-            <span class="mono">{{ row.branch }}</span>
-          </template>
-        </el-table-column>
         <el-table-column min-width="88">
           <template #header>
             <BilingualLabel label="部门" en="Department" />
           </template>
           <template #default="{ row }">
             <span class="mono">{{ row.department }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column min-width="80">
+          <template #header>
+            <BilingualLabel label="分支机构" en="Branch" />
+          </template>
+          <template #default="{ row }">
+            <span class="mono">{{ row.branch }}</span>
           </template>
         </el-table-column>
         <el-table-column min-width="106" align="left">
@@ -229,20 +229,20 @@ watch(() => route.params.id, load);
             <span class="mono">{{ row.cost_currency ?? "—" }}</span>
           </template>
         </el-table-column>
-        <el-table-column min-width="100" align="left">
-          <template #header>
-            <BilingualLabel label="应付金额" en="OS Cost Amt" />
-          </template>
-          <template #default="{ row }">
-            <span class="amt amt-pay">{{ displayMoney(row.os_cost_amt) }}</span>
-          </template>
-        </el-table-column>
         <el-table-column min-width="116" align="left">
           <template #header>
             <BilingualLabel label="估算成本" en="Estimated Cost" />
           </template>
           <template #default="{ row }">
             <span class="amt amt-pay">{{ displayMoney(row.estimated_cost) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column min-width="100" align="left">
+          <template #header>
+            <BilingualLabel label="应付金额" en="OS Cost Amt" />
+          </template>
+          <template #default="{ row }">
+            <span class="amt amt-pay">{{ displayMoney(row.os_cost_amt) }}</span>
           </template>
         </el-table-column>
         <el-table-column min-width="110" align="left">
