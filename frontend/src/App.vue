@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useOptionsStore } from "@/stores/options";
@@ -12,10 +12,29 @@ const router = useRouter();
 onMounted(async () => {
   // 已有令牌时先取回当前用户，权限判定才准确
   await auth.restore();
-  if (auth.isLoggedIn) {
-    await options.ensureLoaded();
-  }
 });
+
+/**
+ * 候选（费用代码、部门、币种……）在登录成功后取一次。
+ *
+ * 之前只在应用启动、且已经有令牌时取——于是「首次登录」与「令牌过期后
+ * 重新登录」这两种情况下都没取过，录入页里的下拉框是空的。
+ * 盯住当前用户：登录成功会写入用户信息，这个 watch 就会补取一次。
+ */
+watch(
+  () => auth.user?.id ?? null,
+  async (userId) => {
+    if (userId === null) {
+      return;
+    }
+    try {
+      await options.ensureLoaded();
+    } catch {
+      // 取不到就先不取：进录入页时还会再试一次
+    }
+  },
+  { immediate: true },
+);
 
 function logout() {
   auth.logout();

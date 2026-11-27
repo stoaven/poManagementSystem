@@ -201,9 +201,37 @@ it("不再展示合计带", async () => {
   });
 });
 
+describe("货运订单详情页的候选加载", () => {
+  it("点「新增费用信息」前会取一次候选（下拉才有选项）", async () => {
+    const spy = vi
+      .spyOn(await import("@/api/options"), "fetchCandidates")
+      .mockResolvedValue({
+        charge_codes: [],
+        departments: [],
+        branches: [],
+        currencies: [],
+        creditors: [],
+        debtors: [],
+      });
+    const w = mountView(ShipmentDetailView);
+    await flushPromises();
+    spy.mockClear();
+
+    const btn = w
+      .findAll("button")
+      .find((b) => b.text().replace(/\s+/g, "") === "新增费用信息");
+    expect(btn).toBeDefined();
+    await btn!.trigger("click");
+    await flushPromises();
+
+    expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
+  });
+});
+
 describe("货运订单详情页的导出", () => {
   it("点「导出 Excel」调用导出接口并触发下载", async () => {
-    exportChargeInfos.mockResolvedValue(new Blob(["xlsx"]));
+    exportChargeInfos.mockResolvedValue(new Blob(["a,b\nc,d"]));
     // jsdom 没有 createObjectURL，补一个
     const createObjectURL = vi.fn(() => "blob:mock");
     const revokeObjectURL = vi.fn();
@@ -217,7 +245,7 @@ describe("货运订单详情页的导出", () => {
 
     const btn = w
       .findAll("button")
-      .find((b) => b.text().replace(/\s+/g, "") === "导出Excel");
+      .find((b) => b.text().replace(/\s+/g, "") === "导出CSV");
     expect(btn).toBeDefined();
     await btn!.trigger("click");
     await flushPromises();
@@ -233,7 +261,7 @@ describe("货运订单详情页的导出", () => {
     await flushPromises();
     const btn = w
       .findAll("button")
-      .find((b) => b.text().replace(/\s+/g, "") === "导出Excel");
+      .find((b) => b.text().replace(/\s+/g, "") === "导出CSV");
     expect(btn).toBeDefined();
     expect(btn!.attributes("disabled")).toBeDefined();
   });

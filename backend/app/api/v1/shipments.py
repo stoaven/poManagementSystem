@@ -112,15 +112,14 @@ def get_shipment(sid: int, _: User = Depends(get_current_user),
 @router.get("/{sid}/charge-infos/export")
 def export_charge_infos(sid: int, _: User = Depends(get_current_user),
                         db: Session = Depends(get_db)):
-    """把该货运订单下的全部费用信息导出为 Excel（英文表头）。"""
+    """把该货运订单下的全部费用信息导出为 CSV（英文表头）。"""
     s = _get_or_404(db, sid)
     lines = charge_info_repo.lines_of(db, s.id)
-    content = export_service.build_charge_info_workbook(lines)
+    content = export_service.build_charge_info_csv(lines)
     filename = export_service.export_filename(s.shipment_num)
     return Response(
         content=content,
-        media_type="application/vnd.openxmlformats-officedocument."
-                   "spreadsheetml.sheet",
+        media_type="text/csv; charset=utf-8",
         headers={
             "Content-Disposition": (
                 f"attachment; filename=\"{filename}\"; "

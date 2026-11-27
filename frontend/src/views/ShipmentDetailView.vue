@@ -9,6 +9,7 @@ import {
   type ShipmentDetail,
 } from "@/api/chargeInfos";
 import { deleteShipment, exportChargeInfos } from "@/api/shipments";
+import { useOptionsStore } from "@/stores/options";
 import { displayMoney } from "@/utils/money";
 import BilingualLabel from "@/components/BilingualLabel.vue";
 import ChargeInfoDialog from "@/components/ChargeInfoDialog.vue";
@@ -23,6 +24,7 @@ const LIFECYCLE_LABEL: Record<string, string> = {
   cancelled: "已取消",
 };
 
+const options = useOptionsStore();
 const detail = ref<ShipmentDetail | null>(null);
 const loading = ref(false);
 
@@ -42,12 +44,26 @@ async function load() {
   }
 }
 
-function openCreate() {
+/**
+ * 打开弹窗前先把候选取到：弹窗里的下拉全靠它们，
+ * 没取到的话下拉框是空的（首次登录或令牌失效后重登时最容易踩到）。
+ */
+async function ensureOptions() {
+  try {
+    await options.ensureLoaded();
+  } catch {
+    // 取不到就把空下拉摆出来，总比不打开弹窗强
+  }
+}
+
+async function openCreate() {
+  await ensureOptions();
   editing.value = null;
   dialogVisible.value = true;
 }
 
-function openEdit(row: ChargeInfo) {
+async function openEdit(row: ChargeInfo) {
+  await ensureOptions();
   editing.value = row;
   dialogVisible.value = true;
 }
@@ -72,7 +88,7 @@ async function onDeleteCharge(row: ChargeInfo) {
 }
 
 
-/** 导出该订单的全部费用信息为 Excel（英文表头）。 */
+/** 导出该订单的全部费用信息为 CSV（英文表头）。 */
 async function onExport() {
   if (!detail.value) {
     return;
@@ -82,12 +98,12 @@ async function onExport() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `charge-info-${detail.value.shipment_num}.xlsx`;
+    a.download = `charge-info-${detail.value.shipment_num}.csv`;
     document.body.appendChild(a);
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-    ElMessage.success("已导出 Excel");
+    ElMessage.success("已导出 CSV");
   } catch (e) {
     ElMessage.error((e as Error).message);
   }
@@ -182,7 +198,7 @@ watch(() => route.params.id, load);
         <h2 class="sheet-title"><BilingualLabel label="费用信息" en="Charge Info" /></h2>
         <div class="sheet-actions">
           <el-button :disabled="!detail?.charge_info?.length" @click="onExport">
-            导出 Excel
+            导出 CSV
           </el-button>
           <el-button type="primary" @click="openCreate">新增费用信息</el-button>
         </div>

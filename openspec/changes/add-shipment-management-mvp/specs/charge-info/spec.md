@@ -161,17 +161,17 @@
 
 ### Requirement: 收付款信息的导出
 
-系统 SHALL 允许已认证用户把某个货运订单下的全部未删除费用信息导出为 Excel 文件。导出文件的表头 MUST 使用**上游英文字段名**，顺序 MUST 为 `Charge Code`、`Description`、`Department`、`Branch`、`Cost Currency`、`Estimated Cost`、`OS Cost Amt`、`Local Cost Amt`、`Creditor`、`Sell Currency`、`OS Sell Amt`、`Estimated Revenue`、`Local Sell Amt`、`Debtor` 共十四列，与详情页表格的栏位一致。每一行 MUST 对应一条费用信息，金额 MUST 以数值形式写入以便在 Excel 中求和与筛选。已被软删除的费用信息 MUST NOT 出现在导出结果中。
+系统 SHALL 允许已认证用户把某个货运订单下的全部未删除费用信息导出为 CSV 文件（UTF-8 带 BOM，行尾 CRLF）。导出文件的表头 MUST 使用**上游英文字段名**，顺序 MUST 为 `Charge Code`、`Description`、`Department`、`Branch`、`Cost Currency`、`Estimated Cost`、`OS Cost Amt`、`Local Cost Amt`、`Creditor`、`Sell Currency`、`OS Sell Amt`、`Estimated Revenue`、`Local Sell Amt`、`Debtor` 共十四列，与详情页表格的栏位一致。每一行 MUST 对应一条费用信息，金额 MUST 写成不带千分位的数字文本以便在表格软件中求和与筛选。已被软删除的费用信息 MUST NOT 出现在导出结果中。
 
 #### Scenario: 导出全部费用信息
 
 - **WHEN** 用户在某货运订单的详情页触发导出
 - **THEN** 系统返回一个 Excel 文件，表头为上游英文字段名，每条未删除的费用信息各占一行
 
-#### Scenario: 导出的金额是数字
+#### Scenario: 导出的金额能直接求和
 
 - **WHEN** 导出的文件在 Excel 中打开
-- **THEN** 六列金额都是数值而非文本，可直接求和
+- **THEN** 六列金额都是不带千分位逗号的数字文本，可直接求和
 
 #### Scenario: 已删除的记录不导出
 

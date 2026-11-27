@@ -122,7 +122,7 @@ npm run dev
 | GET | `/shipments` | 登录 | 货运订单列表（分页 + 关键字 + 业务状态；**不返回任何金额**） |
 | POST | `/shipments` | 登录 | 新建货运订单（单号全局唯一，不区分大小写） |
 | GET | `/shipments/{id}` | 登录 | 订单详情：其下全部费用信息（不做金额合计） |
-| GET | `/shipments/{id}/charge-infos/export` | 登录 | 导出该订单的费用信息为 Excel（**英文表头**） |
+| GET | `/shipments/{id}/charge-infos/export` | 登录 | 导出该订单的费用信息为 CSV（**英文表头**） |
 | PATCH | `/shipments/{id}` | 登录 | 修改货运订单号 |
 | DELETE | `/shipments/{id}` | 登录 | 软删除订单 |
 | POST | `/shipments/{id}/confirm\|complete\|cancel` | 登录 | 状态流转（草稿→确认/取消，已确认→完成/取消） |
@@ -204,10 +204,10 @@ npm run dev
 已软删除的 `code` 会被**跳过**（不复活），导入结果里会报告跳过了几条。
 导入完页面会提示「新增 X 条，更新 Y 条」，有问题的行单独提示。
 
-## 导出 Excel
+## 导出 CSV
 
-货运订单详情页有「导出 Excel」按钮，把该订单下的**全部费用信息**导出成一个
-`.xlsx` 文件。表头用**上游英文字段名**：
+货运订单详情页有「导出 CSV」按钮，把该订单下的**全部费用信息**导出成一个
+`.csv` 文件。表头用**上游英文字段名**：
 
 ```
 Charge Code | Description | Department | Branch | Cost Currency |
@@ -217,8 +217,10 @@ OS Sell Amt | Estimated Revenue | Local Sell Amt | Debtor
 
 十四栏，与详情页表格的栏位一致（导出不再带任务码列）。
 
-两列金额以**数值**写入（可直接在 Excel 里求和与筛选），已软删除的记录不导出。
-文件名取自货运订单号，如 `charge-info-SSHL26309129.xlsx`。
+六列金额写成**不带千分位的数字文本**（CSV 里只有文本，带逗号就没法求和），
+已软删除的记录不导出。文件名取自货运订单号，如 `charge-info-SSHL26309129.csv`。
+
+文件带 UTF-8 BOM：Excel 双击打开时中文不乱码。
 
 ## 登录方式
 

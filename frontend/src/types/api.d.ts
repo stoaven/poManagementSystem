@@ -293,7 +293,7 @@ export interface paths {
         };
         /**
          * Export Charge Infos
-         * @description 把该货运订单下的全部费用信息导出为 Excel（英文表头）。
+         * @description 把该货运订单下的全部费用信息导出为 CSV（英文表头）。
          */
         get: operations["export_charge_infos_api_v1_shipments__sid__charge_infos_export_get"];
         put?: never;

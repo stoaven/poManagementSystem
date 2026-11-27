@@ -67,7 +67,7 @@ export async function transitionShipment(
   return data;
 }
 
-/** 导出该订单的全部费用信息（Excel，英文表头）。 */
+/** 导出该订单的全部费用信息（CSV，英文表头）。 */
 export async function exportChargeInfos(shipmentId: number): Promise<Blob> {
   const { data } = await client.get(
     `/shipments/${shipmentId}/charge-infos/export`,

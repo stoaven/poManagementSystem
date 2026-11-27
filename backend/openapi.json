@@ -2113,7 +2113,7 @@
     },
     "/api/v1/shipments/{sid}/charge-infos/export": {
       "get": {
-        "description": "把该货运订单下的全部费用信息导出为 Excel（英文表头）。",
+        "description": "把该货运订单下的全部费用信息导出为 CSV（英文表头）。",
         "operationId": "export_charge_infos_api_v1_shipments__sid__charge_infos_export_get",
         "parameters": [
           {
